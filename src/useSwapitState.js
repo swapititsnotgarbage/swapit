@@ -1,5 +1,7 @@
+// ייבוא פונקציות ה-Hooks מתוך ספריית React לניהול מצב (State) ותופעות לוואי (Effect)
 import { useState, useEffect } from 'react';
 
+// הגדרת מערך קבוע של קטגוריות ופריטים התחלתיים שיוצגו באפליקציה אם אין נתונים שמורים
 const initialCategories = [
   {
     id: 'furniture',
@@ -95,7 +97,7 @@ const initialCategories = [
     items: [
       {
         id: 8,
-        title: 'מנשדרה ענקית (מונסטרה) בעציץ מעוצב',
+        title: 'מונסטרה ענקית בעציץ מעוצב',
         location: 'כפר מונש',
         region: 'שרון',
         image: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?auto=format&fit=crop&w=500&q=80',
@@ -147,7 +149,7 @@ const initialCategories = [
     items: [
       {
         id: 12,
-        title: 'מזרן יغا איכותי + בלוקים',
+        title: 'מזרן יוגה איכותי + בלוקים',
         location: 'תל אביב',
         region: 'מרכז',
         image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=500&q=80',
@@ -257,7 +259,7 @@ const initialCategories = [
         image: 'https://images.unsplash.com/photo-1564865878688-9a244444042a?auto=format&fit=crop&w=500&q=80',
         wanted: 'רמקול בלוטות׳ נייד',
         condition: 'כמו חדש',
-        description: 'מהיר, קל משקל ונוח מאוד לנשיאה באוטובוסים ובכاعة.'
+        description: 'מהיר, קל משקל ונוח מאוד לנשיאה באוטובוסים ובכביש.'
       }
     ]
   },
@@ -277,7 +279,10 @@ const initialCategories = [
   { id: 'other', title: 'שונות / אחר', items: [] }
 ];
 
+// פונקציית ה-Hook הראשית המרכזת את כל הלוגיקה, המצבים והנתונים של האפליקציה
 export function useSwapitState() {
+  
+  // 1. משתנה מצב לניהול האם המשתמש מחובר (בודק מיד בזיכרון המקומי localStorage כדי לזכור בין רענונים)
   const [isRegistered, setIsRegistered] = useState(() => {
     try {
       return localStorage.getItem('swapit_is_registered_v3') === 'true';
@@ -286,6 +291,7 @@ export function useSwapitState() {
     }
   });
 
+  // פונקציה לטיפול בהתנתקות המשתמש וניקוי נתוני הרישום מהזיכרון המקומי
   const handleLogout = () => {
     setIsRegistered(false);
     try {
@@ -293,6 +299,7 @@ export function useSwapitState() {
     } catch (e) {}
   };
 
+  // 2. משתנה מצב לניהול הקטגוריות והפריטים באפליקציה (נטען מהזיכרון המקומי או מהנתונים ההתחלתיים)
   const [categories, setCategories] = useState(() => {
     try {
       const saved = localStorage.getItem('swapit_categories_v3');
@@ -302,15 +309,18 @@ export function useSwapitState() {
     }
   });
 
+  // 3. משתנה מצב לניהול פרופיל המשתמש (שם, מיקום, טלפון). מוגדר עם ערכי ברירת מחדל אישיים
   const [userProfile, setUserProfile] = useState(() => {
     try {
       const saved = localStorage.getItem('swapit_profile_v3');
+      // אם יש מידע שמור בזיכרון המקומי, נטען אותו. אחרת, נשתמש בפרטים המוגדרים מראש
       return saved ? JSON.parse(saved) : { name: 'יובל לוי', location: 'כפר מונש', phone: '050-1234567' };
     } catch (e) {
       return { name: 'יובל לוי', location: 'כפר מונש', phone: '050-1234567' };
     }
   });
 
+  // 4. משתנה מצב לניהול הפריטים האישיים שהמשתמש פרסם לברטר
   const [myItems, setMyItems] = useState(() => {
     try {
       const saved = localStorage.getItem('swapit_my_items_v3');
@@ -331,6 +341,7 @@ export function useSwapitState() {
     }
   });
 
+  // 5. משתנה מצב לניהול הברטרים הפעילים או שאוורו
   const [trades, setTrades] = useState(() => {
     try {
       const saved = localStorage.getItem('swapit_trades_v3');
@@ -342,6 +353,7 @@ export function useSwapitState() {
     }
   });
 
+  // 6. משתנה מצב לניהול הודעות הצ'אט בין משתמשים לפי מזהה עסקה (Trade ID)
   const [messages, setMessages] = useState(() => {
     try {
       const saved = localStorage.getItem('swapit_messages_v3');
@@ -355,6 +367,7 @@ export function useSwapitState() {
     }
   });
 
+  // 7. משתנה מצב לניהול הפריטים שסומנו כמועדפים על ידי המשתמש
   const [favorites, setFavorites] = useState(() => {
     try {
       const saved = localStorage.getItem('swapit_favorites_v3');
@@ -364,6 +377,7 @@ export function useSwapitState() {
     }
   });
 
+  // 8. משתנה מצב לניהול דירוגים והמלצות על המשתמש
   const [ratings, setRatings] = useState(() => {
     try {
       const saved = localStorage.getItem('swapit_ratings_v3');
@@ -375,6 +389,7 @@ export function useSwapitState() {
     }
   });
 
+  // 9. משתנה מצב למצב תצוגה כהה (Dark Mode)
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
       const saved = localStorage.getItem('swapit_dark_mode_v3');
@@ -384,6 +399,7 @@ export function useSwapitState() {
     }
   });
 
+  // משתני עזר לניהול חיפושים, סינונים ופתיחת חלונות קופצים (Modals) שונים בממשק
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('הכל');
   const [selectedCondition, setSelectedCondition] = useState('הכל');
@@ -397,6 +413,7 @@ export function useSwapitState() {
   const [tradeTargetItem, setTradeTargetItem] = useState(null);
   const [activeFloatingTrade, setActiveFloatingTrade] = useState(null);
 
+  // אפקט (useEffect) שרץ בכל פעם שאחד מהנתונים החשובים משתנה, ושומר אותם אוטומטית בזיכרון המקומי (localStorage)
   useEffect(() => {
     try {
       localStorage.setItem('swapit_is_registered_v3', isRegistered);
@@ -411,6 +428,7 @@ export function useSwapitState() {
     } catch (e) {}
   }, [isRegistered, categories, userProfile, myItems, trades, messages, favorites, ratings, isDarkMode]);
 
+  // פונקציה להוספה או הסרה של פריט מרשימת המועדפים
   const handleToggleFavorite = (itemId) => {
     if (favorites.includes(itemId)) {
       setFavorites(favorites.filter(id => id !== itemId));
@@ -419,6 +437,7 @@ export function useSwapitState() {
     }
   };
 
+  // פונקציה להוספת פריט חדש למערכת ולקטגוריה המתאימה
   const handleAddItem = (categoryKey, newItem) => {
     setCategories(categories.map(cat => {
       if (cat.id === categoryKey) {
@@ -429,10 +448,12 @@ export function useSwapitState() {
     setMyItems([newItem, ...myItems]);
   };
 
+  // פונקציה למחיקת פריט שהמשתמש העלה
   const handleDeleteMyItem = (itemId) => {
     setMyItems(myItems.filter(item => item.id !== itemId));
   };
 
+  // פונקציה לעדכון פריט קיים של המשתמש
   const handleUpdateMyItem = (updatedItem) => {
     setMyItems(myItems.map(i => i.id === updatedItem.id ? updatedItem : i));
     setCategories(categories.map(cat => ({
@@ -441,6 +462,7 @@ export function useSwapitState() {
     })));
   };
 
+  // פונקציה לשליחת הצעת ברטר חדשה
   const handleSendTradeOffer = (myItem, targetItem) => {
     const newTrade = {
       id: Date.now(),
@@ -461,10 +483,12 @@ export function useSwapitState() {
     setTradeTargetItem(null);
   };
 
+  // פונקציה לעדכון סטטוס של עסקה
   const handleUpdateTradeStatus = (tradeId, newStatus) => {
     setTrades(trades.map(t => t.id === tradeId ? { ...t, status: newStatus } : t));
   };
 
+  // פונקציה לשליחת הודעה בצ'אט והפעלת מענה אוטומטי סימולטיבי
   const handleSendMessage = (tradeId, text) => {
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const newMsg = { sender: 'me', text, time: timeStr };
@@ -487,10 +511,12 @@ export function useSwapitState() {
     }, 1500);
   };
 
-  const handleAddRating = (newRating) => {
+  // פונקציה להוספת דירוג חדש
+  const AddRating = (newRating) => {
     setRatings([newRating, ...ratings]);
   };
 
+  // סינון הקטגוריות והפריטים בהתאם לחיפוש, אזור גיאוגרפי, מצב הפריט והמועדפים
   const filteredCategories = categories
     .filter(cat => selectedCategory === 'הכל' || cat.id === selectedCategory)
     .map(cat => ({
@@ -512,17 +538,18 @@ export function useSwapitState() {
       })
     }));
 
+  // החזרת כל המשתנים והפונקציות החוצה כדי ששאר קומפוננטות המערכת יוכלו להשתמש בהם
   return {
     isRegistered, setIsRegistered, handleLogout,
     categories, userProfile, myItems, trades, messages, favorites, ratings, isDarkMode, setIsDarkMode,
     searchQuery, setSearchQuery, selectedRegion, setSelectedRegion,
-    selectedCondition, setSelectedCondition, minRating, minRating,
+    selectedCondition, setSelectedCondition, minRating, setMinRating,
     selectedCategory, setSelectedCategory, selectedItem, setSelectedItem,
     isUploadOpen, setIsUploadOpen, isProfileOpen, setIsProfileOpen,
     isMenuOpen, setIsMenuOpen, tradeTargetItem, setTradeTargetItem,
     activeFloatingTrade, setActiveFloatingTrade,
     handleToggleFavorite, handleAddItem, handleDeleteMyItem, handleUpdateMyItem,
-    handleSendTradeOffer, handleUpdateTradeStatus, handleSendMessage, handleAddRating,
+    handleSendTradeOffer, handleUpdateTradeStatus, handleSendMessage, handleAddRating: AddRating,
     setUserProfile, filteredCategories
   };
 }
