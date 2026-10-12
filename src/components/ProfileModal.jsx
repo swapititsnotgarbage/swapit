@@ -1,60 +1,25 @@
-// ייבוא ספריית React וה-Hooks הנדרשים לניהול מצב ותופעות לוואי
+// ייבוא ספריית React וה-Hooks הנדרשים לניהול מצב ותופעות לוואי[cite: 6]
 import React, { useState, useEffect } from 'react';
-// ייבוא אובייקט ה-Auth ובסיס הנתונים Firestore מתוך קובץ ההגדרה של Firebase
+// ייבוא אובייקט ה-Auth ובסיס הנתונים Firestore מתוך קובץ ההגדרה של Firebase[cite: 6]
 import { auth, db } from '../firebase';
-// ייבוא פונקציית עדכון מסמך מתוך Firestore
+// ייבוא פונקציית עדכון מסמך מתוך Firestore[cite: 6]
 import { doc, setDoc } from 'firebase/firestore';
+// ייבוא רשימת היישובים המרכזית מהקובץ החיצוני
+import { ALLOWED_CITIES } from '../Locations/cities';
 
-// רשימת היישובים המורשית לבחירה באפליקציה (מסודרת באלפבית)
-const ALLOWED_CITIES = [
-  "כפר מונש",
-  "כפר ידידיה",
-  "כפר הראّه",
-  "כפר סבא",
-  "כפר ויתקין",
-  "תל אביב - יפו",
-  "ירושלים",
-  "חיפה",
-  "נתניה",
-  "רמת גן",
-  "גבעתיים",
-  "פתח תקווה",
-  "ראשון לציון",
-  "רחובות",
-  "נס ציונה",
-  "הרצליה",
-  "רמת השרון",
-  "רעננה",
-  "הוד השרון",
-  "חדרה",
-  "זכרון יעקב",
-  "בנימינה",
-  "קיסריה",
-  "פרדס חנה-כרכור",
-  "עמק חפר",
-  "מגדים",
-  "חיפה והקריות",
-  "באר שבע",
-  "אשדוד",
-  "אשקלון",
-  "מודיעין-מכבים-רעות",
-  "צפון (גליל/גולן)",
-  "דרום (אילת/נגב)"
-].sort();
-
-// הגדרת קומפוננטת מודל האזור האישי
+// הגדרת קומפוננטת מודל האזור האישי[cite: 6]
 export default function ProfileModal({ isOpen, onClose, userProfile, onUpdateProfile, ratings, completedTradesCount, onLogout, isDarkMode }) {
-  // משתני מצב לשדות הטופס (שם, יישוב וטלפון)
+  // משתני מצב לשדות הטופס (שם, יישוב וטלפון)[cite: 6]
   const [name, setName] = useState(userProfile?.name || '');
   const [location, setLocation] = useState(userProfile?.location || 'כפר מונש');
   const [phone, setPhone] = useState(userProfile?.phone || '');
   
-  // ניהול מצב "זכור אותי" מתוך ה-localStorage
+  // ניהול מצב "זכור אותי" מתוך ה-localStorage[cite: 6]
   const [rememberMe, setRememberMe] = useState(
     localStorage.getItem('swapit_remember_me') === 'true'
   );
 
-  // עדכון שדות הטופס ברגע שפרופיל המשתמש טוען מחדש
+  // עדכון שדות הטופס ברגע שפרופיל המשתמש טוען מחדש[cite: 6]
   useEffect(() => {
     if (userProfile) {
       setName(userProfile.name || '');
@@ -63,24 +28,24 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
     }
   }, [userProfile]);
 
-  // אם המודל סגור, אל תציג כלום
+  // אם המודל סגור, אל תציג כלום[cite: 6]
   if (!isOpen) return null;
 
-  // פונקציה לשינוי הגדרת זכור אותי ושמירתה בזיכרון המקומי
+  // פונקציה לשינוי הגדרת זכור אותי ושמירתה בזיכרון המקומי[cite: 6]
   const handleToggleRemember = (e) => {
     const newValue = e.target.checked;
     setRememberMe(newValue);
     localStorage.setItem('swapit_remember_me', newValue ? 'true' : 'false');
   };
 
-  // פונקציית שמירת השינויים שמעדכנת גם מקומית וגם ב-Firebase Firestore
+  // פונקציית שמירת השינויים שמעדכנת גם מקומית וגם ב-Firebase Firestore[cite: 6]
   const handleSave = async (e) => {
     e.preventDefault();
     
-    // שליפת ה-UID המדויק מכל מקור אפשרי
+    // שליפת ה-UID המדויק מכל מקור אפשרי[cite: 6]
     const activeUserId = auth.currentUser?.uid || userProfile?.uid || localStorage.getItem('swapit_user_uid');
 
-    // יצירת אובייקט הנתונים המעודכן כולל ה-UID המפורש
+    // יצירת אובייקט הנתונים המעודכן כולל ה-UID המפורש[cite: 6]
     const updated = {
       ...userProfile,
       uid: activeUserId,
@@ -92,7 +57,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
 
     try {
       if (activeUserId) {
-        // שמירת הנתונים המעודכנים ישירות במסמך של המשתמש בענן תחת users/{activeUserId}
+        // שמירת הנתונים המעודכנים ישירות במסמך של המשתמש בענן תחת users/{activeUserId}[cite: 6]
         const userDocRef = doc(db, 'users', activeUserId);
         await setDoc(userDocRef, updated, { merge: true });
         console.log("הפרופיל עודכן בהצלחה בענן תחת UID:", activeUserId);
@@ -103,7 +68,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
       console.error("שגיאה בעדכון הפרופיל בענן:", error);
     }
 
-    // עדכון הסטייט המקומי והזיכרון המקומי (localStorage)
+    // עדכון הסטייט המקומי והזיכרון המקומי (localStorage)[cite: 6]
     onUpdateProfile(updated);
     try {
       localStorage.setItem('swapit_user_profile', JSON.stringify(updated));
@@ -122,7 +87,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
         isDarkMode ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-stone-200 text-stone-800'
       }`}>
         
-        {/* כותרת עליונה של המודל */}
+        {/* כותרת עליונה של המודל[cite: 6] */}
         <div className={`flex items-center justify-between p-6 border-b ${isDarkMode ? 'border-gray-800' : 'border-stone-100'}`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-700/10 text-amber-700 flex items-center justify-center font-bold text-xl">
@@ -145,10 +110,10 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
           </button>
         </div>
 
-        {/* תוכן גוף המודל עם אפשרות גלילה */}
+        {/* תוכן גוף המודל עם אפשרות גלילה[cite: 6] */}
         <div className="p-6 space-y-6 overflow-y-auto flex-1 text-right">
           
-          {/* קוביית סטטיסטיקות ומוניטין */}
+          {/* קוביית סטטיסטיקות ומוניטין[cite: 6] */}
           <div className="grid grid-cols-2 gap-4">
             <div className={`p-4 rounded-2xl border text-center ${
               isDarkMode ? 'bg-gray-800/40 border-gray-800' : 'bg-stone-50 border-stone-200/60'
@@ -173,7 +138,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
             </div>
           </div>
 
-          {/* טופס עריכת פרטים אישיים */}
+          {/* טופס עריכת פרטים אישיים[cite: 6] */}
           <form onSubmit={handleSave} className={`p-5 rounded-2xl border space-y-4 ${
             isDarkMode ? 'bg-gray-800/20 border-gray-800' : 'bg-amber-50/30 border-amber-200/60'
           }`}>
@@ -193,7 +158,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
                 />
               </div>
 
-              {/* שדה בחירת יישוב מרשימה סגורה (SELECT במקום INPUT חופשי) */}
+              {/* שדה בחירת יישוב מרשימה סגורה (מתוך הקובץ החיצוני) */}
               <div>
                 <label className={`block text-xs font-semibold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-stone-700'}`}>יישוב / מיקום (מתוך הרשימה)</label>
                 <select
@@ -223,7 +188,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
               />
             </div>
 
-            {/* מתג זכור אותי */}
+            {/* מתג זכור אותי[cite: 6] */}
             <div className={`flex items-center justify-between p-3 rounded-xl border ${
               isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-stone-200'
             }`}>
@@ -247,7 +212,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
             </button>
           </form>
 
-          {/* אזור ביקורות קהילה */}
+          {/* אזור ביקורות קהילה[cite: 6] */}
           <div>
             <h4 className={`text-sm font-extrabold mb-3 flex items-center gap-2 ${isDarkMode ? 'text-gray-300' : 'text-stone-700'}`}>
               💬 ביקורות קהילה ({ratings?.length || 1})
@@ -268,7 +233,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
 
         </div>
 
-        {/* כפתורים בתחתית המודל */}
+        {/* כפתורים בתחתית המודל[cite: 6] */}
         <div className={`p-4 border-t flex items-center justify-between shrink-0 ${isDarkMode ? 'border-gray-800 bg-gray-900/80' : 'border-stone-100 bg-white'}`}>
           <button 
             onClick={() => { onLogout(); onClose(); }}

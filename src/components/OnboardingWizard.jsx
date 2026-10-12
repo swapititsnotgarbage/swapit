@@ -1,56 +1,24 @@
-// ייבוא ספריית React וה-Hooks לניהול מצב
+// ייבוא ספריית React וה-Hooks לניהול מצב[cite: 3]
 import React, { useState } from 'react';
-// ייבוא אובייקט ה-Auth ובסיס הנתונים Firestore מתוך קובץ ההגדרה של Firebase
+// ייבוא אובייקט ה-Auth ובסיס הנתונים Firestore מתוך קובץ ההגדרה של Firebase[cite: 3]
 import { auth, db } from '../firebase';
-// ייבוא פונקציות ההתחברות של Google
+// ייבוא פונקציות ההתחברות של Google[cite: 3]
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-// ייבוא פונקציות עבודה מול Firestore לבדיקה ושמירת מסמכים בענן
+// ייבוא פונקציות עבודה מול Firestore לבדיקה ושמירת מסמכים בענן[cite: 3]
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+// ייבוא רשימת היישובים המרכזית מהקובץ החיצוני
+import { ALLOWED_CITIES } from '../Locations/cities';
 
-// רשימת היישובים המורשית לבחירה באפליקציה (מסודרת באלפבית)
-const ALLOWED_CITIES = [
-  "כפר מונש",
-  "תל אביב - יפו",
-  "ירושלים",
-  "חיפה",
-  "נתניה",
-  "רמת גן",
-  "גבעתיים",
-  "פתח תקווה",
-  "ראשון לציון",
-  "רחובות",
-  "נס ציונה",
-  "הרצליה",
-  "רמת השרון",
-  "כפר סבא",
-  "רעננה",
-  "הוד השרון",
-  "חדרה",
-  "זכרון יעקב",
-  "בנימינה",
-  "קיסריה",
-  "פרדס חנה-כרכור",
-  "עמק חפר",
-  "מגדים",
-  "חיפה והקריות",
-  "באר שבע",
-  "אשדוד",
-  "אשקלון",
-  "מודיעין-מכבים-רעות",
-  "צפון (גליל/גולן)",
-  "דרום (אילת/נגב)"
-].sort();
-
-// הגדרת קומפוננטת אשף ההרשמה
+// הגדרת קומפוננטת אשף ההרשמה[cite: 3]
 export default function OnboardingWizard({ onComplete, isDarkMode }) {
-  // משתנה מצב לניהול השלב הנוכחי באשף
+  // משתנה מצב לניהול השלב הנוכחי באשף[cite: 3]
   const [step, setStep] = useState('welcome');
-  // משתני מצב לשמירת הפרטים בטופס
+  // משתני מצב לשמירת הפרטים בטופס[cite: 3]
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
 
-  // פונקציה לטיפול בהתחברות עם Google ובדיקה בענן האם המשתמש כבר רשום
+  // פונקציה לטיפול בהתחברות עם Google ובדיקה בענן האם המשתמש כבר רשום[cite: 3]
   const handleGoogleLogin = async () => {
     try {
       const provider = new GoogleAuthProvider();
@@ -58,10 +26,10 @@ export default function OnboardingWizard({ onComplete, isDarkMode }) {
       const user = result.user;
       setCurrentUser(user);
 
-      // שמירת ה-UID של המשתמש בזיכרון המקומי לשימוש עתידי באזור האישי
+      // שמירת ה-UID של המשתמש בזיכרון המקומי לשימוש עתידי באזור האישי[cite: 3]
       localStorage.setItem('swapit_user_uid', user.uid);
 
-      // בדיקה בענן האם קיים כבר מסמך עבור ה-UID של המשתמש
+      // בדיקה בענן האם קיים כבר מסמך עבור ה-UID של המשתמש[cite: 3]
       const userDocRef = doc(db, 'users', user.uid);
       const userDocSnap = await getDoc(userDocRef);
 
@@ -83,7 +51,7 @@ export default function OnboardingWizard({ onComplete, isDarkMode }) {
     }
   };
 
-  // פונקציה לשמירת הפרטים החדשים בענן בסיום מילוי הטופס בפעם הראשונה
+  // פונקציה לשמירת הפרטים החדשים בענן בסיום מילוי הטופס בפעם הראשונה[cite: 3]
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim() || !location) {
@@ -112,7 +80,7 @@ export default function OnboardingWizard({ onComplete, isDarkMode }) {
       return;
     }
 
-    // מעבר לאתר
+    // מעבר לאתר[cite: 3]
     onComplete(profileData);
   };
 
@@ -125,7 +93,7 @@ export default function OnboardingWizard({ onComplete, isDarkMode }) {
         <div className="text-center space-y-2">
           <span className="text-4xl">🌱</span>
           <h3 className="text-2xl font-black">הצטרפות לקהילת SWAPIT</h3>
-          <p className="text-xs text-stone-400">פלטפורמת הברטר הישראלית – זה לא זבל 🌱</p>
+          <p className="text-xs text-stone-400">פלטפורמת הברטר הישראלית – זה לא זבל 🌱[cite: 3]</p>
         </div>
 
         {step === 'welcome' && (
@@ -169,7 +137,7 @@ export default function OnboardingWizard({ onComplete, isDarkMode }) {
                   }`}
                   required
                 >
-                  <option value="" disabled>למשל: כפר מונש</option>
+                  <option value="" disabled>בחר יישוב מהרשימה...</option>
                   {ALLOWED_CITIES.map((city, idx) => (
                     <option key={idx} value={city}>{city}</option>
                   ))}
