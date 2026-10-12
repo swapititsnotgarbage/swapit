@@ -1,7 +1,7 @@
 // ייבוא ספריית React וה-Hooks הנדרשים לניהול מצב ותופעות לוואי[cite: 6]
 import React, { useState, useEffect } from 'react';
-// ייבוא בסיס הנתונים Firestore מתוך קובץ ההגדרה של Firebase[cite: 6]
-import { db } from '../firebase';
+// ייבוא אובייקט ה-Auth ובסיס הנתונים Firestore מתוך קובץ ההגדרה של Firebase
+import { auth, db } from '../firebase';
 // ייבוא פונקציית עדכון מסמך מתוך Firestore[cite: 6]
 import { doc, setDoc } from 'firebase/firestore';
 
@@ -12,7 +12,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
   const [location, setLocation] = useState(userProfile?.location || '');
   const [phone, setPhone] = useState(userProfile?.phone || '');
   
-  // ניהול מצב "זכור אותי" מתוך ה-localStorage (תוקן לסוגריים עגולים תקינים)
+  // ניהול מצב "זכור אותי" מתוך ה-localStorage[cite: 6]
   const [rememberMe, setRememberMe] = useState(
     localStorage.getItem('swapit_remember_me') === 'true'
   );
@@ -36,13 +36,17 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
     localStorage.setItem('swapit_remember_me', newValue ? 'true' : 'false');
   };
 
-  // פונקציית שמירת השינויים שמעדכנת גם מקומית וגם ב-Firebase Firestore[cite: 6]
+  // פונקציית שמירת השינויים שמעדכנת גם מקומית וגם ב-Firebase Firestore
   const handleSave = async (e) => {
     e.preventDefault();
     
-    // יצירת אובייקט הנתונים המעודכן[cite: 6]
+    // שליפת ה-UID המדויק מכל מקור אפשרי (כולל אובייקט ההתחברות הפעיל של פיירבייס)
+    const activeUserId = auth.currentUser?.uid || userProfile?.uid || localStorage.getItem('swapit_user_uid');
+
+    // יצירת אובייקט הנתונים המעודכן כולל ה-UID המפורש
     const updated = {
       ...userProfile,
+      uid: activeUserId,
       name,
       location,
       phone,
@@ -50,16 +54,13 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
     };
 
     try {
-      // שליפת ה-UID ישירות מתוך פרופיל המשתמש השמור או מה-localStorage[cite: 6]
-      const userId = userProfile?.uid || localStorage.getItem('swapit_user_uid');
-      
-      if (userId) {
-        // שמירת הנתונים המעודכנים ישירות במסמך של המשתמש בענן תחת users/{uid}[cite: 6]
-        const userDocRef = doc(db, 'users', userId);
+      if (activeUserId) {
+        // שמירת הנתונים המעודכנים ישירות במסמך של המשתמש בענן תחת users/{activeUserId}
+        const userDocRef = doc(db, 'users', activeUserId);
         await setDoc(userDocRef, updated, { merge: true });
-        console.log("הפרופיל עודכן בהצלחה בענן תחת UID:", userId);
+        console.log("הפרופיל עודכן בהצלחה בענן תחת UID:", activeUserId);
       } else {
-        console.warn("לא נמצא UID של משתמש, מעדכן רק מקומית.");
+        console.warn("שגיאה: לא נמצא UID פעיל לשמירה בענן.");
       }
     } catch (error) {
       console.error("שגיאה בעדכון הפרופיל בענן:", error);
@@ -69,6 +70,9 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
     onUpdateProfile(updated);
     try {
       localStorage.setItem('swapit_user_profile', JSON.stringify(updated));
+      if (activeUserId) {
+        localStorage.setItem('swapit_user_uid', activeUserId);
+      }
     } catch (e) {}
 
     alert('הפרטים האישיים עודכנו בהצלחה בענן ובמכשיר! ✨');
