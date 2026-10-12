@@ -1,35 +1,72 @@
-// ייבוא ספריית React וה-Hooks הנדרשים לניהול מצב ותופעות לוואי[cite: 6]
+// ייבוא ספריית React וה-Hooks הנדרשים לניהול מצב ותופעות לוואי
 import React, { useState, useEffect } from 'react';
 // ייבוא אובייקט ה-Auth ובסיס הנתונים Firestore מתוך קובץ ההגדרה של Firebase
 import { auth, db } from '../firebase';
-// ייבוא פונקציית עדכון מסמך מתוך Firestore[cite: 6]
+// ייבוא פונקציית עדכון מסמך מתוך Firestore
 import { doc, setDoc } from 'firebase/firestore';
 
-// הגדרת קומפוננטת מודל האזור האישי[cite: 6]
+// רשימת היישובים המורשית לבחירה באפליקציה (מסודרת באלפבית)
+const ALLOWED_CITIES = [
+  "כפר מונש",
+  "כפר ידידיה",
+  "כפר הראّه",
+  "כפר סבא",
+  "כפר ויתקין",
+  "תל אביב - יפו",
+  "ירושלים",
+  "חיפה",
+  "נתניה",
+  "רמת גן",
+  "גבעתיים",
+  "פתח תקווה",
+  "ראשון לציון",
+  "רחובות",
+  "נס ציונה",
+  "הרצליה",
+  "רמת השרון",
+  "רעננה",
+  "הוד השרון",
+  "חדרה",
+  "זכרון יעקב",
+  "בנימינה",
+  "קיסריה",
+  "פרדס חנה-כרכור",
+  "עמק חפר",
+  "מגדים",
+  "חיפה והקריות",
+  "באר שבע",
+  "אשדוד",
+  "אשקלון",
+  "מודיעין-מכבים-רעות",
+  "צפון (גליל/גולן)",
+  "דרום (אילת/נגב)"
+].sort();
+
+// הגדרת קומפוננטת מודל האזור האישי
 export default function ProfileModal({ isOpen, onClose, userProfile, onUpdateProfile, ratings, completedTradesCount, onLogout, isDarkMode }) {
-  // משתני מצב לשדות הטופס (שם, יישוב וטלפון)[cite: 6]
+  // משתני מצב לשדות הטופס (שם, יישוב וטלפון)
   const [name, setName] = useState(userProfile?.name || '');
-  const [location, setLocation] = useState(userProfile?.location || '');
+  const [location, setLocation] = useState(userProfile?.location || 'כפר מונש');
   const [phone, setPhone] = useState(userProfile?.phone || '');
   
-  // ניהול מצב "זכור אותי" מתוך ה-localStorage[cite: 6]
+  // ניהול מצב "זכור אותי" מתוך ה-localStorage
   const [rememberMe, setRememberMe] = useState(
     localStorage.getItem('swapit_remember_me') === 'true'
   );
 
-  // עדכון שדות הטופס ברגע שפרופיל המשתמש טוען מחדש[cite: 6]
+  // עדכון שדות הטופס ברגע שפרופיל המשתמש טוען מחדש
   useEffect(() => {
     if (userProfile) {
       setName(userProfile.name || '');
-      setLocation(userProfile.location || '');
+      setLocation(userProfile.location || 'כפר מונש');
       setPhone(userProfile.phone || '');
     }
   }, [userProfile]);
 
-  // אם המודל סגור, אל תציג כלום[cite: 6]
+  // אם המודל סגור, אל תציג כלום
   if (!isOpen) return null;
 
-  // פונקציה לשינוי הגדרת זכור אותי ושמירתה בזיכרון המקומי[cite: 6]
+  // פונקציה לשינוי הגדרת זכור אותי ושמירתה בזיכרון המקומי
   const handleToggleRemember = (e) => {
     const newValue = e.target.checked;
     setRememberMe(newValue);
@@ -40,7 +77,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
   const handleSave = async (e) => {
     e.preventDefault();
     
-    // שליפת ה-UID המדויק מכל מקור אפשרי (כולל אובייקט ההתחברות הפעיל של פיירבייס)
+    // שליפת ה-UID המדויק מכל מקור אפשרי
     const activeUserId = auth.currentUser?.uid || userProfile?.uid || localStorage.getItem('swapit_user_uid');
 
     // יצירת אובייקט הנתונים המעודכן כולל ה-UID המפורש
@@ -66,7 +103,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
       console.error("שגיאה בעדכון הפרופיל בענן:", error);
     }
 
-    // עדכון הסטייט המקומי והזיכרון המקומי (localStorage)[cite: 6]
+    // עדכון הסטייט המקומי והזיכרון המקומי (localStorage)
     onUpdateProfile(updated);
     try {
       localStorage.setItem('swapit_user_profile', JSON.stringify(updated));
@@ -80,13 +117,12 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
   };
 
   return (
-    // מעטפת מסך מלא מרכזית עם אפקט טשטוש רקע[cite: 6]
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" dir="rtl">
       <div className={`border rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl relative transition-colors flex flex-col max-h-[90vh] ${
         isDarkMode ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-stone-200 text-stone-800'
       }`}>
         
-        {/* כותרת עליונה של המודל[cite: 6] */}
+        {/* כותרת עליונה של המודל */}
         <div className={`flex items-center justify-between p-6 border-b ${isDarkMode ? 'border-gray-800' : 'border-stone-100'}`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-700/10 text-amber-700 flex items-center justify-center font-bold text-xl">
@@ -109,10 +145,10 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
           </button>
         </div>
 
-        {/* תוכן גוף המודל עם אפשרות גלילה[cite: 6] */}
+        {/* תוכן גוף המודל עם אפשרות גלילה */}
         <div className="p-6 space-y-6 overflow-y-auto flex-1 text-right">
           
-          {/* קוביית סטטיסטיקות ומוניטין[cite: 6] */}
+          {/* קוביית סטטיסטיקות ומוניטין */}
           <div className="grid grid-cols-2 gap-4">
             <div className={`p-4 rounded-2xl border text-center ${
               isDarkMode ? 'bg-gray-800/40 border-gray-800' : 'bg-stone-50 border-stone-200/60'
@@ -137,7 +173,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
             </div>
           </div>
 
-          {/* טופס עריכת פרטים אישיים[cite: 6] */}
+          {/* טופס עריכת פרטים אישיים */}
           <form onSubmit={handleSave} className={`p-5 rounded-2xl border space-y-4 ${
             isDarkMode ? 'bg-gray-800/20 border-gray-800' : 'bg-amber-50/30 border-amber-200/60'
           }`}>
@@ -156,17 +192,22 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
                   required
                 />
               </div>
+
+              {/* שדה בחירת יישוב מרשימה סגורה (SELECT במקום INPUT חופשי) */}
               <div>
-                <label className={`block text-xs font-semibold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-stone-700'}`}>יישוב / מיקום</label>
-                <input 
-                  type="text" 
+                <label className={`block text-xs font-semibold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-stone-700'}`}>יישוב / מיקום (מתוך הרשימה)</label>
+                <select
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   className={`w-full border rounded-xl p-3 text-sm focus:outline-none focus:border-amber-600 text-right ${
                     isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-stone-300 text-stone-800'
                   }`}
                   required
-                />
+                >
+                  {ALLOWED_CITIES.map((city, idx) => (
+                    <option key={idx} value={city}>{city}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -182,7 +223,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
               />
             </div>
 
-            {/* מתג זכור אותי[cite: 6] */}
+            {/* מתג זכור אותי */}
             <div className={`flex items-center justify-between p-3 rounded-xl border ${
               isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-stone-200'
             }`}>
@@ -206,7 +247,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
             </button>
           </form>
 
-          {/* אזור ביקורות קהילה[cite: 6] */}
+          {/* אזור ביקורות קהילה */}
           <div>
             <h4 className={`text-sm font-extrabold mb-3 flex items-center gap-2 ${isDarkMode ? 'text-gray-300' : 'text-stone-700'}`}>
               💬 ביקורות קהילה ({ratings?.length || 1})
@@ -227,7 +268,7 @@ export default function ProfileModal({ isOpen, onClose, userProfile, onUpdatePro
 
         </div>
 
-        {/* כפתורים בתחתית המודל[cite: 6] */}
+        {/* כפתורים בתחתית המודל */}
         <div className={`p-4 border-t flex items-center justify-between shrink-0 ${isDarkMode ? 'border-gray-800 bg-gray-900/80' : 'border-stone-100 bg-white'}`}>
           <button 
             onClick={() => { onLogout(); onClose(); }}
