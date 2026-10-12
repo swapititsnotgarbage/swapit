@@ -1,5 +1,8 @@
+// ייבוא ספריית React וה-Hooks הנדרשים לניהול מצב ותופעות לוואי
 import React, { useState, useEffect } from 'react';
+// ייבוא ה-Hook המרכזי שמנהל את נתוני האפליקציה והזיכרון המקומי
 import { useSwapitState } from './useSwapitState';
+// ייבוא קומפוננטות ממשק שונות של האתר
 import OnboardingWizard from './components/OnboardingWizard';
 import Navbar from './components/Navbar';
 import Banner from './components/Banner';
@@ -12,12 +15,16 @@ import ProfileModal from './components/ProfileModal';
 import MyItemsModal from './components/MyItemsModal';
 import SidebarMenu from './components/SidebarMenu';
 import FloatingChat from './components/FloatingChat';
+// ייבוא חיבור לבסיס הנתונים של Firebase ופקודות עבודה מול Firestore
 import { db } from './firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
+// הגדרת קומפוננטת האב הראשית של האפליקציה
 export default function App() {
+  // קריאה ל-Hook המרכזי שלנו ואבטחה למקרה שיחזיר ערך ריק
   const state = useSwapitState() || {};
   
+  // חילוץ מערכים ונתונים בצורה בטוחה עם ערכי ברירת מחדל למניעת קריסות
   const categories = Array.isArray(state.categories) ? state.categories : [];
   const myItems = Array.isArray(state.myItems) ? state.myItems : [];
   const localTrades = Array.isArray(state.trades) ? state.trades : [];
@@ -37,6 +44,7 @@ export default function App() {
   const tradeTargetItem = state.tradeTargetItem || null;
   const activeFloatingTrade = state.activeFloatingTrade || null;
 
+  // חילוץ פקודות עדכון וניהול מתוך ה-State
   const setSearchQuery = state.setSearchQuery || (() => {});
   const setSelectedRegion = state.setSelectedRegion || (() => {});
   const setSelectedCondition = state.setSelectedCondition || (() => {});
@@ -57,49 +65,61 @@ export default function App() {
   const handleAddRating = state.handleAddRating || (() => {});
   const originalHandleLogout = state.handleLogout || (() => {});
 
+  // ניהול מצב פרופיל המשתמש מתוך הזיכרון המקומי (localStorage) עם ערכי ברירת מחדל אישיים
   const [userProfile, setUserProfile] = useState(() => {
     try {
       const saved = localStorage.getItem('swapit_user_profile');
-      return saved ? JSON.parse(saved) : {};
+      return saved ? JSON.parse(saved) : { name: 'יובל לוי', location: 'כפר מונש', phone: '050-1234567' };
     } catch (e) {
-      return {};
+      return { name: 'יובל לוי', location: 'כפר מונש', phone: '050-1234567' };
     }
   });
 
+  // ניהול מצב ההרשמה (isRegistered) - בודק את כל מפתחות הזיכרון האפשריים כדי לוודא שמשתמש מחובר לא יראה את האשף שוב
   const [isRegistered, setIsRegistered] = useState(() => {
     try {
       const isRemembered = localStorage.getItem('swapit_remember_me') === 'true';
+      const isV3Registered = localStorage.getItem('swapit_is_registered_v3') === 'true';
       const savedProfile = localStorage.getItem('swapit_user_profile');
-      return isRemembered && !!savedProfile;
+      return isRemembered || isV3Registered || !!savedProfile;
     } catch (e) {
-      return false;
+      return true;
     }
   });
 
+  // פונקציה שמופעלת בסיום מילוי פרטים במסך ההרשמה הראשוני (Onboarding)
   const handleCompleteOnboarding = (details) => {
     const newProfile = { 
-      name: details?.name || 'משתמש', 
+      name: details?.name || 'יובל לוי', 
       location: details?.location || 'כפר מונש', 
-      phone: details?.phone || '050-0000000' 
+      phone: details?.phone || '050-1234567' 
     };
     setUserProfile(newProfile);
     try {
+      // שמירה בכל מפתחות הזיכרון כדי למנוע התנגשויות בעתיד
       localStorage.setItem('swapit_remember_me', 'true');
+      localStorage.setItem('swapit_is_registered_v3', 'true');
       localStorage.setItem('swapit_user_profile', JSON.stringify(newProfile));
     } catch (e) {}
     setIsRegistered(true);
+    if (state.setIsRegistered) {
+      state.setIsRegistered(true);
+    }
   };
 
+  // פונקציית התנתקות שמנקה את נתוני הזיכרון המקומי ומחזירה למסך ההתחברות
   const handleLogout = () => {
     try {
       localStorage.removeItem('swapit_remember_me');
+      localStorage.removeItem('swapit_is_registered_v3');
       localStorage.removeItem('swapit_user_profile');
     } catch (e) {}
     setIsRegistered(false);
-    setUserProfile({});
+    setUserProfile({ name: 'יובל לוי', location: 'כפר מונש', phone: '050-1234567' });
     originalHandleLogout();
   };
 
+  // פונקציה לעדכון פרטי הפרופיל ושמירתם בזיכרון המקומי
   const handleUpdateProfile = (updated) => {
     setUserProfile(updated);
     try {
@@ -107,11 +127,13 @@ export default function App() {
     } catch (e) {}
   };
 
+  // משתני מצב לניהול חלונות קופצים ונתונים מענן Firebase
   const [isMyItemsOpen, setIsMyItemsOpen] = useState(false);
   const [firestoreItems, setFirestoreItems] = useState([]);
   const [firestoreTrades, setFirestoreTrades] = useState([]);
   const [firestoreMessages, setFirestoreMessages] = useState([]);
 
+  // האזנה בזמן אמת לשינויים בטבלת הפריטים בענן (Firebase Firestore)
   useEffect(() => {
     try {
       const unsubscribe = onSnapshot(collection(db, 'items'), (snapshot) => {
@@ -122,6 +144,7 @@ export default function App() {
     } catch (err) {}
   }, []);
 
+  // האזנה בזמן אמת לשינויים בעסקאות הברטר בענן
   useEffect(() => {
     try {
       const unsubscribe = onSnapshot(collection(db, 'trades'), (snapshot) => {
@@ -132,6 +155,7 @@ export default function App() {
     } catch (err) {}
   }, []);
 
+  // האזנה בזמן אמת להודעות הצ'אט בענן
   useEffect(() => {
     try {
       const unsubscribe = onSnapshot(collection(db, 'messages'), (snapshot) => {
@@ -142,6 +166,7 @@ export default function App() {
     } catch (err) {}
   }, []);
 
+  // פונקציה להוספת פריט חדש לענן
   const handleAddCloudItem = async (newItem) => {
     try {
       const cleanedItem = Object.fromEntries(
@@ -153,6 +178,7 @@ export default function App() {
     } catch (error) {}
   };
 
+  // פונקציה למחיקת פריט מהענן ומהמערכת המקומית
   const handleCloudDeleteItem = async (itemId) => {
     try {
       if (itemId && String(itemId).length > 10) {
@@ -165,6 +191,7 @@ export default function App() {
     }
   };
 
+  // פונקציה לעדכון פריט בענן
   const handleCloudUpdateItem = async (updatedItem) => {
     try {
       if (updatedItem?.id && String(updatedItem.id).length > 10) {
@@ -182,6 +209,7 @@ export default function App() {
     }
   };
 
+  // פונקציה לשליחת הצעת ברטר חדשה לענן
   const handleCloudSendTradeOffer = async (myItem, targetItem) => {
     try {
       if (targetItem) {
@@ -192,7 +220,7 @@ export default function App() {
           offeredItemTitle: myItem?.title || '',
           offeredItemImage: myItem?.image || '',
           status: 'ממתין',
-          senderName: userProfile?.name || 'שכן אלמוני',
+          senderName: userProfile?.name || 'יובל לוי',
           createdAt: new Date().toISOString()
         });
         alert("הצעת החלפה נשלחה בהצלחה לענן! 🤝");
@@ -203,6 +231,7 @@ export default function App() {
     }
   };
 
+  // פונקציה לעדכון סטטוס עסקה בענן
   const handleCloudUpdateTradeStatus = async (tradeId, newStatus) => {
     try {
       if (tradeId && String(tradeId).length > 10) {
@@ -214,12 +243,13 @@ export default function App() {
     }
   };
 
+  // פונקציה לשליחת הודעה בצ'אט לענן
   const handleCloudSendMessage = async (tradeId, text) => {
     try {
       if (tradeId && text) {
         await addDoc(collection(db, 'messages'), {
           tradeId: tradeId,
-          sender: userProfile?.name || 'אני',
+          sender: userProfile?.name || 'יובל לוי',
           text: text,
           timestamp: new Date().toISOString()
         });
@@ -230,6 +260,7 @@ export default function App() {
     }
   };
 
+  // מיזוג נתוני הקטגוריות והפריטים מהמקומי ומהענן לתצוגה אחידה
   const safeInitialCategories = Array.isArray(categories) ? categories : [];
   const safeFirestoreItems = Array.isArray(firestoreItems) ? firestoreItems : [];
 
@@ -255,6 +286,7 @@ export default function App() {
   const activeTrades = [...localTrades, ...firestoreTrades.filter(ft => !localTrades.some(lt => lt.id === ft.id))];
   const activeMessages = [...localMessages, ...firestoreMessages.filter(fm => !localMessages.some(lm => lm.id === fm.id))];
 
+  // סינון הפריטים לפי חיפוש, קטגוריה, אזור, מצב ודירוג
   const filteredCategories = mergedCategories.map(cat => ({
     ...cat,
     items: (Array.isArray(cat.items) ? cat.items : []).filter(item => {
@@ -275,6 +307,7 @@ export default function App() {
       isDarkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-800'
     }`}>
       
+      {/* הצגת מסך ההרשמה רק אם המשתמש לא מחובר כלל */}
       {!isRegistered && (
         <OnboardingWizard 
           onComplete={handleCompleteOnboarding}
@@ -282,6 +315,7 @@ export default function App() {
         />
       )}
 
+      {/* תפריט ניווט עליון */}
       <Navbar 
         onOpenUpload={() => setIsUploadOpen(true)} 
         onOpenProfile={() => setIsProfileOpen(true)}
@@ -292,6 +326,7 @@ export default function App() {
         onToggleDarkMode={() => state.setIsDarkMode ? state.setIsDarkMode(!isDarkMode) : {}}
       />
       
+      {/* באנר חיפוש וסינונים */}
       <Banner 
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -304,6 +339,7 @@ export default function App() {
         isDarkMode={isDarkMode}
       />
 
+      {/* רשת קטגוריות */}
       <CategoryGrid 
         categories={mergedCategories}
         selectedCategory={selectedCategory}
@@ -312,6 +348,7 @@ export default function App() {
         isDarkMode={isDarkMode}
       />
 
+      {/* אזור הצגת הפריטים המרכזי */}
       <main className="max-w-7xl mx-auto px-6 space-y-10 mt-6">
         {filteredCategories.map((category) => (
           <CategoryRow 
@@ -325,6 +362,7 @@ export default function App() {
         ))}
       </main>
 
+      {/* חלונות קופצים (Modals) שונים */}
       <ItemModal 
         item={selectedItem} 
         onClose={() => setSelectedItem(null)} 
