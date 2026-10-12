@@ -43,7 +43,7 @@ const ALLOWED_CITIES = [
 
 // הגדרת קומפוננטת אשף ההרשמה
 export default function OnboardingWizard({ onComplete, isDarkMode }) {
-  // משתנה מצב לניהול השלב הנוכחי (welcome = התחברות גוגל, details = מילוי פרטים ראשוניים בלבד)
+  // משתנה מצב לניהול השלב הנוכחי באשף
   const [step, setStep] = useState('welcome');
   // משתני מצב לשמירת הפרטים בטופס
   const [name, setName] = useState('');
@@ -58,20 +58,22 @@ export default function OnboardingWizard({ onComplete, isDarkMode }) {
       const user = result.user;
       setCurrentUser(user);
 
-      // בדיקה בענן (Firestore) האם קיים כבר מסמך עבור ה-UID של המשתמש
+      // שמירת ה-UID של המשתמש בזיכרון המקומי לשימוש עתידי באזור האישי
+      localStorage.setItem('swapit_user_uid', user.uid);
+
+      // בדיקה בענן האם קיים כבר מסמך עבור ה-UID של המשתמש
       const userDocRef = doc(db, 'users', user.uid);
       const userDocSnap = await getDoc(userDocRef);
 
       if (userDocSnap.exists()) {
-        // אם המשתמש כבר קיים בענן, ניקח את הפרטים שלו ונעביר אותו מיד לאתר בלי להציג אשף
         const userData = userDocSnap.data();
         onComplete({
+          uid: user.uid,
           name: userData.name || user.displayName || 'יובל לוי',
           location: userData.location || 'כפר מונש',
           phone: userData.phone || '050-1234567'
         });
       } else {
-        // אם זו הפעם הראשונה שלו, נציג את השם מגוגל ונעבור לשלב בחירת היישוב
         setName(user.displayName || 'יובל לוי');
         setStep('details');
       }
@@ -90,6 +92,7 @@ export default function OnboardingWizard({ onComplete, isDarkMode }) {
     }
 
     const profileData = {
+      uid: currentUser?.uid || localStorage.getItem('swapit_user_uid'),
       name: name.trim(),
       location: location,
       phone: '050-1234567',
@@ -98,13 +101,15 @@ export default function OnboardingWizard({ onComplete, isDarkMode }) {
     };
 
     try {
-      // שמירת פרופיל המשתמש במסמך ייעודי בענן המקושר ל-UID שלו
-      if (currentUser) {
-        const userDocRef = doc(db, 'users', currentUser.uid);
+      if (profileData.uid) {
+        const userDocRef = doc(db, 'users', profileData.uid);
         await setDoc(userDocRef, profileData, { merge: true });
+        console.log("הנתונים נשמרו בהצלחה בענן!");
       }
     } catch (error) {
       console.error("שגיאה בשמירת הפרופיל בענן:", error);
+      alert("שגיאה בשמירת הפרופיל בענן: " + error.message);
+      return;
     }
 
     // מעבר לאתר
@@ -112,20 +117,17 @@ export default function OnboardingWizard({ onComplete, isDarkMode }) {
   };
 
   return (
-    // מעטפת מסך מלא עם רקע כהה ומטושטש
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4" dir="rtl">
       <div className={`border rounded-3xl max-w-md w-full p-8 space-y-6 shadow-2xl relative ${
         isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-stone-200 text-stone-800'
       }`}>
         
-        {/* כותרת האשף */}
         <div className="text-center space-y-2">
           <span className="text-4xl">🌱</span>
           <h3 className="text-2xl font-black">הצטרפות לקהילת SWAPIT</h3>
           <p className="text-xs text-stone-400">פלטפורמת הברטר הישראלית – זה לא זבל 🌱</p>
         </div>
 
-        {/* שלב 1: כפתור התחברות באמצעות Google */}
         {step === 'welcome' && (
           <div className="space-y-4">
             <button
@@ -141,7 +143,6 @@ export default function OnboardingWizard({ onComplete, isDarkMode }) {
           </div>
         )}
 
-        {/* שלב 2: טופס השלמת יישוב בפעם הראשונה בלבד */}
         {step === 'details' && (
           <form onSubmit={handleFinalSubmit} className="space-y-4">
             <div className="space-y-3">
@@ -158,7 +159,6 @@ export default function OnboardingWizard({ onComplete, isDarkMode }) {
                 />
               </div>
 
-              {/* שדה בחירת יישוב */}
               <div>
                 <label className="block text-xs font-bold mb-1">יישוב / מיקום (בחר מהרשימה) *</label>
                 <select
