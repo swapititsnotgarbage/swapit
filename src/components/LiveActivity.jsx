@@ -22,15 +22,12 @@ export default function LiveActivity({ isDarkMode }) {
       setCurrentEvent(randomMsg);
       setIsVisible(true);
 
-      // ההודעה נשארת על המסך 5 שניות
       setTimeout(() => {
         setIsVisible(false);
       }, 5000);
     };
 
-    // הודעה ראשונה קופצת שנייה אחת אחרי שהאתר עולה (מיידי)
     const initialTimer = setTimeout(triggerRandomEvent, 1000);
-    // הודעה נוספת קופצת כל 8 שניות כדי לייצר תחושת תנועה ערה
     const interval = setInterval(triggerRandomEvent, 8000);
 
     return () => {
@@ -47,7 +44,6 @@ export default function LiveActivity({ isDarkMode }) {
         <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border-2 ${
           isDarkMode ? 'bg-gray-900 border-gray-700 text-gray-100' : 'bg-white border-emerald-100 text-stone-800'
         }`}>
-          {/* נקודה ירוקה מהבהבת גדולה יותר */}
           <div className="relative flex items-center justify-center">
             <span className="animate-ping absolute inline-flex h-4 w-4 rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>

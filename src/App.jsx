@@ -12,6 +12,7 @@ import ProfileModal from './components/ProfileModal';
 import MyItemsModal from './components/MyItemsModal';
 import SidebarMenu from './components/SidebarMenu';
 import FloatingChat from './components/FloatingChat';
+import LiveActivity from './components/LiveActivity'; // הייבוא שהיה חסר
 import { db } from './firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
@@ -297,7 +298,7 @@ export default function App() {
   const completedTradesCount = activeTrades.filter(t => t?.status === 'אושר').length;
 
   return (
-    <div dir="rtl" className={`min-h-screen w-full font-sans pb-16 transition-colors ${
+    <div dir="rtl" className={`min-h-screen w-full font-sans pb-16 transition-colors relative ${
       isDarkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-800'
     }`}>
       
@@ -417,6 +418,9 @@ export default function App() {
         onSendMessage={handleCloudSendMessage}
         isDarkMode={isDarkMode}
       />
+
+      {/* ההפעלה של קומפוננטת הפעילות החיה */}
+      <LiveActivity isDarkMode={isDarkMode} />
 
     </div>
   );
