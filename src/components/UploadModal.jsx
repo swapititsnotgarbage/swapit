@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ALLOWED_CITIES } from '../Locations/cities'; 
 
 const CATEGORY_ICONS = {
@@ -29,7 +29,7 @@ const CATEGORY_ICONS = {
   other: '📦 שונות'
 };
 
-export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
+export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode, userLocation }) {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [location, setLocation] = useState('');
@@ -39,9 +39,14 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
   const [image, setImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  useEffect(() => {
+    if (isOpen && userLocation) {
+      setLocation(userLocation);
+    }
+  }, [isOpen, userLocation]);
+
   if (!isOpen) return null;
 
-  // פונקציה לכיווץ התמונה לפני ההמרה ל-Base64 כדי שלא נעבור את מגבלת ה-1MB של Firestore
   const compressImage = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -73,7 +78,6 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
           
-          // שמירה כ-JPEG באיכות 60% כדי להבטיח משקל נמוך מ-1MB
           const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
           resolve(dataUrl);
         };
@@ -100,7 +104,6 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
     setIsUploading(true);
 
     try {
-      // כיווץ התמונה והמרתה לטקסט 
       const compressedBase64Image = await compressImage(image);
 
       onAdd({
@@ -114,6 +117,11 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
       });
 
       setIsUploading(false);
+      setTitle('');
+      setCategory('');
+      setWanted('');
+      setDescription('');
+      setImage(null);
     } catch (error) {
       console.error("שגיאה בהמרת התמונה:", error);
       alert("אירעה שגיאה בעיבוד התמונה. נסה שוב.");
@@ -122,20 +130,20 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
-      <div className={`border rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative my-8 ${
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 md:p-8" dir="rtl">
+      <div className={`border rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative max-h-[85vh] overflow-y-auto ${
         isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-stone-200 text-stone-800'
       }`}>
         
         <button 
           type="button"
           onClick={onClose}
-          className="absolute left-4 top-4 text-stone-400 hover:text-stone-100 text-xl font-bold cursor-pointer w-8 h-8 rounded-full flex items-center justify-center bg-stone-800/40"
+          className="absolute left-4 top-4 text-stone-400 hover:text-stone-100 text-xl font-bold cursor-pointer w-8 h-8 rounded-full flex items-center justify-center bg-stone-800/40 z-10"
         >
           ✕
         </button>
 
-        <div className="text-center space-y-1">
+        <div className="text-center space-y-1 pt-2">
           <h3 className="text-xl font-black">העלאת פריט חדש להחלפה 🌱</h3>
         </div>
 
@@ -166,7 +174,7 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
                 }`}
                 required
               >
-                <option value="" disabled>למשל: תל אביב</option>
+                <option value="" disabled>בחר יישוב...</option>
                 {ALLOWED_CITIES.map((city, idx) => (
                   <option key={idx} value={city}>{city}</option>
                 ))}
