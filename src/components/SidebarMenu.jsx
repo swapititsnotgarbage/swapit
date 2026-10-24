@@ -14,8 +14,6 @@ export default function SidebarMenu({
   const [activeTab, setActiveTab] = useState('trades'); 
   const [selectedTrade, setSelectedTrade] = useState(null);
   const [chatText, setChatText] = useState('');
-  
-  // ניהול מצב למערכת הדירוגים
   const [ratingTradeId, setRatingTradeId] = useState(null);
   const [ratingScore, setRatingScore] = useState(5);
   const [ratingComment, setRatingComment] = useState('');
@@ -238,7 +236,6 @@ export default function SidebarMenu({
                             </button>
                           </div>
 
-                          {/* מערכת דירוגים - קופצת רק אם העסקה אושרה */}
                           {isApproved && ratingTradeId !== trade.id && (
                             <button 
                               onClick={() => setRatingTradeId(trade.id)}
@@ -329,7 +326,6 @@ export default function SidebarMenu({
                 </div>
               )}
 
-              {/* מנוע ההחלפות המשולשות (SmartSwap) */}
               {activeTab === 'triple' && (
                 <div className="space-y-4 py-4">
                   <div className="text-center mb-6">
@@ -349,7 +345,6 @@ export default function SidebarMenu({
                       </div>
                       
                       <div className="flex flex-col gap-3 relative">
-                        {/* חיבור ויזואלי בין המשתתפים */}
                         <div className="absolute left-1/2 top-4 bottom-4 w-0.5 bg-emerald-200 dark:bg-emerald-800/50 -translate-x-1/2 -z-10"></div>
                         
                         <div className={`p-3 rounded-xl border flex items-center justify-between shadow-sm z-10 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-stone-200'}`}>
@@ -403,24 +398,24 @@ export default function SidebarMenu({
               {activeTab === 'terms' && (
                 <div className="space-y-4 text-xs leading-relaxed text-right">
                   <h4 className="font-bold text-sm text-amber-700 border-b pb-2 border-stone-200 flex items-center gap-1">
-                    <span>תקנון קהילת SWAPIT</span>
+                    <span>תקנון משפטי ותנאי שימוש</span>
                     <span>📜</span>
                   </h4>
                   <div className="space-y-2">
-                    <h5 className="font-bold text-stone-700 dark:text-stone-300">1. כבוד והוגנות</h5>
-                    <p className="text-stone-500">קהילת SWAPIT מושתתת על אמון הדדי. יש להקפיד על שיח מכבד והוגן בכל אינטראקציה וצ'אט.</p>
+                    <h5 className="font-bold text-stone-700 dark:text-stone-300">1. היעדר אחריות והגבלת חבות (As-Is)</h5>
+                    <p className="text-stone-500">האתר ופלטפורמת SWAPIT מסופקים "כמות שהם" (As-Is). הנהלת האתר אינה נושאת באחריות כלשהי לטיב, איכות, תקינות או חוקיות הפריטים המוחלפים. כל עסקה מבוצעת באחריותם הבלעדית של המשתמשים בלבד.</p>
                   </div>
                   <div className="space-y-2">
-                    <h5 className="font-bold text-stone-700 dark:text-stone-300">2. אמינות תיאור הפריט</h5>
-                    <p className="text-stone-500">חל איסור להעלות מוצרים פגומים ללא דיווח מפורש. יש לתאר את מצב המוצר בצורה המדויקת ביותר.</p>
+                    <h5 className="font-bold text-stone-700 dark:text-stone-300">2. לוח מודעות ופטור מתביעות</h5>
+                    <p className="text-stone-500">מובהר בזאת כי האתר מהווה פלטפורמת תיווך וללוח מודעות בלבד, ואינו צד לשום עסקה. המשתמש פוטר את מפעילי האתר מכל דרישה, טענה או תביעה בגין כל נזק, ישיר או עקיף, שייגרם כתוצאה משימוש בפלטפורמה, לרבות עוגמת נפש או נזק כספי.</p>
                   </div>
                   <div className="space-y-2">
-                    <h5 className="font-bold text-stone-700 dark:text-stone-300">3. פריטים אסורים</h5>
-                    <p className="text-stone-500">אין להעלות מוצרים בלתי חוקיים, נשק, תרופות או פריטים המפרים זכויות יוצרים.</p>
+                    <h5 className="font-bold text-stone-700 dark:text-stone-300">3. בדיקת מוצרים ואחריות אישית</h5>
+                    <p className="text-stone-500">חובה על המשתמש המקבל לבדוק את הפריט בעת המסירה. אי-גילוי נאות מצד המוסר אינו מטיל כל חבות על הנהלת האתר.</p>
                   </div>
                   <div className="space-y-2">
-                    <h5 className="font-bold text-stone-700 dark:text-stone-300">4. אחריות העסקה</h5>
-                    <p className="text-stone-500">עסקאות הברטר מבוצעות במישרין בין משתמשי הקהילה ובאחריותם הבלעדית.</p>
+                    <h5 className="font-bold text-stone-700 dark:text-stone-300">4. שיפוי בגין נזקים</h5>
+                    <p className="text-stone-500">המשתמש מתחייב לשפות את הנהלת האתר בגין כל נזק, הוצאה או תביעה מצד שלישי שתנבע משימוש בלתי ראוי, העלאת תוכן פוגעני או הפרת זכויות במסגרת הפלטפורמה.</p>
                   </div>
                 </div>
               )}

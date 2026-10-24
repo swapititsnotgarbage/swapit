@@ -240,7 +240,6 @@ export default function App() {
     }
   };
 
-  // מנגנון הדיווח הקהילתי החדש
   const handleCloudReportItem = async (item) => {
     try {
       await addDoc(collection(db, 'reports'), {
@@ -280,7 +279,6 @@ export default function App() {
   const activeTrades = [...localTrades, ...firestoreTrades.filter(ft => !localTrades.some(lt => lt.id === ft.id))];
   const activeMessages = [...localMessages, ...firestoreMessages.filter(fm => !localMessages.some(lm => lm.id === fm.id))];
 
-  // ספירת התראות שלא נקראו (הצעות ברטר שממתינות לאישור המשתמש)
   const unreadCount = activeTrades.filter(t => t.status === 'ממתין' && t.senderName !== userProfile?.name).length;
 
   const filteredCategories = mergedCategories.map(cat => ({
@@ -366,6 +364,7 @@ export default function App() {
         onClose={() => setIsUploadOpen(false)} 
         onAdd={handleAddCloudItem}
         isDarkMode={isDarkMode}
+        userLocation={userProfile?.location}
       />
 
       <ProfileModal 
