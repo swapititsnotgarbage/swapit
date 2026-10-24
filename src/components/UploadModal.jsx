@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { ALLOWED_CITIES } from '../Locations/cities'; // ייבוא רשימת היישובים המרכזית
+import { ALLOWED_CITIES } from '../Locations/cities'; 
 
-// 🏷️ קטגוריות ראשיות להעלאה
 const CATEGORY_ICONS = {
   furniture: '🛋️ ריהוט וציוד לבית',
   kitchen: '🍳 מטבח ובישול',
@@ -38,18 +37,47 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
   const [wanted, setWanted] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
-  
-  // ⏳ מצב טעינה בזמן שהתמונה עולה לענן
   const [isUploading, setIsUploading] = useState(false);
 
   if (!isOpen) return null;
 
-  // פונקציית עזר להמרת קובץ תמונה למחרוזת טקסט (Base64)
-  const convertToBase64 = (file) => {
+  // פונקציה לכיווץ התמונה לפני ההמרה ל-Base64 כדי שלא נעבור את מגבלת ה-1MB של Firestore
+  const compressImage = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // שמירה כ-JPEG באיכות 60% כדי להבטיח משקל נמוך מ-1MB
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          resolve(dataUrl);
+        };
+      };
       reader.onerror = (error) => reject(error);
     });
   };
@@ -72,10 +100,9 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
     setIsUploading(true);
 
     try {
-      // המרת התמונה לטקסט (Base64) כדי לשמור ישירות במסד הנתונים החינמי
-      const base64Image = await convertToBase64(image);
+      // כיווץ התמונה והמרתה לטקסט 
+      const compressedBase64Image = await compressImage(image);
 
-      // העברת הנתונים לפונקציה השומרת ב-Firestore
       onAdd({
         title,
         category,
@@ -83,13 +110,13 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
         condition,
         wanted,
         description,
-        image: base64Image 
+        image: compressedBase64Image 
       });
 
       setIsUploading(false);
     } catch (error) {
       console.error("שגיאה בהמרת התמונה:", error);
-      alert("אירעה שגיאה בהמרת התמונה. נסה שוב.");
+      alert("אירעה שגיאה בעיבוד התמונה. נסה שוב.");
       setIsUploading(false);
     }
   };
@@ -100,7 +127,6 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
         isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-stone-200 text-stone-800'
       }`}>
         
-        {/* כפתור סגירה */}
         <button 
           type="button"
           onClick={onClose}
@@ -115,7 +141,6 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           
-          {/* שם הפריט */}
           <div>
             <label className="block text-xs font-bold mb-1">שם הפריט *</label>
             <input 
@@ -131,7 +156,6 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* מיקום */}
             <div>
               <label className="block text-xs font-bold mb-1">מיקום (עיר/אזור) *</label>
               <select
@@ -149,7 +173,6 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
               </select>
             </div>
 
-            {/* קטגוריה */}
             <div>
               <label className="block text-xs font-bold mb-1">קטגוריה *</label>
               <select
@@ -168,7 +191,6 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
             </div>
           </div>
 
-          {/* מצב הפריט */}
           <div>
             <label className="block text-xs font-bold mb-1">מצב הפריט *</label>
             <select
@@ -185,7 +207,6 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
             </select>
           </div>
 
-          {/* מה תרצה לקבל בתמורה */}
           <div>
             <label className="block text-xs font-bold mb-1">מה תרצה לקבל בתמורה?</label>
             <input 
@@ -199,7 +220,6 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
             />
           </div>
 
-          {/* תמונה - חובה */}
           <div>
             <label className="block text-xs font-bold mb-1">העלה תמונה מהמחשב / פלאפון (חובה) 📷 *</label>
             <input 
@@ -213,7 +233,6 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
             />
           </div>
 
-          {/* תיאור */}
           <div>
             <label className="block text-xs font-bold mb-1">תיאור קצר על הפריט</label>
             <textarea 
