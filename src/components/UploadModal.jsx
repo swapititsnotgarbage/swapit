@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import { storage } from '../firebase';
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { ALLOWED_CITIES } from '../Locations/cities'; // ייבוא רשימת היישובים המרכזית
 
 // 🏷️ קטגוריות ראשיות להעלאה
@@ -46,6 +44,16 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
 
   if (!isOpen) return null;
 
+  // פונקציית עזר להמרת קובץ תמונה למחרוזת טקסט (Base64)
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!location) {
@@ -64,16 +72,10 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
     setIsUploading(true);
 
     try {
-      // 1. יצירת הפניה (Reference) ייחודית ב-Storage
-      const imageRef = ref(storage, `items/${Date.now()}_${image.name}`);
-      
-      // 2. העלאת הקובץ ל-Firebase Storage
-      await uploadBytes(imageRef, image);
-      
-      // 3. קבלת כתובת ה-URL הציבורית של התמונה
-      const imageUrl = await getDownloadURL(imageRef);
+      // המרת התמונה לטקסט (Base64) כדי לשמור ישירות במסד הנתונים החינמי
+      const base64Image = await convertToBase64(image);
 
-      // 4. העברת הנתונים (כולל ה-URL האמיתי) לפונקציה השומרת ב-Firestore
+      // העברת הנתונים לפונקציה השומרת ב-Firestore
       onAdd({
         title,
         category,
@@ -81,13 +83,13 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
         condition,
         wanted,
         description,
-        image: imageUrl 
+        image: base64Image 
       });
 
       setIsUploading(false);
     } catch (error) {
-      console.error("שגיאה בהעלאת התמונה:", error);
-      alert("אירעה שגיאה בהעלאת התמונה. נסה שוב.");
+      console.error("שגיאה בהמרת התמונה:", error);
+      alert("אירעה שגיאה בהמרת התמונה. נסה שוב.");
       setIsUploading(false);
     }
   };
