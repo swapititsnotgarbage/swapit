@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-// מאגר ההודעות הפיקטיביות שירוצו באתר
 const simulatedEvents = [
   "דנה מתל אביב הרגע העלתה פריט חדש 📦",
   "הצעת החלפה (SmartSwap) אושרה עכשיו בחיפה 🤝",
@@ -19,22 +18,20 @@ export default function LiveActivity({ isDarkMode }) {
 
   useEffect(() => {
     const triggerRandomEvent = () => {
-      // בחירת הודעה רנדומלית מתוך המאגר
       const randomMsg = simulatedEvents[Math.floor(Math.random() * simulatedEvents.length)];
       setCurrentEvent(randomMsg);
       setIsVisible(true);
 
-      // ההודעה נעלמת אחרי 4 שניות
+      // ההודעה נשארת על המסך 5 שניות
       setTimeout(() => {
         setIsVisible(false);
-      }, 4000);
+      }, 5000);
     };
 
-    // הודעה ראשונה קופצת 3 שניות אחרי שהאתר עולה
-    const initialTimer = setTimeout(triggerRandomEvent, 3000);
-
-    // הודעה נוספת קופצת כל 12 שניות
-    const interval = setInterval(triggerRandomEvent, 12000);
+    // הודעה ראשונה קופצת שנייה אחת אחרי שהאתר עולה (מיידי)
+    const initialTimer = setTimeout(triggerRandomEvent, 1000);
+    // הודעה נוספת קופצת כל 8 שניות כדי לייצר תחושת תנועה ערה
+    const interval = setInterval(triggerRandomEvent, 8000);
 
     return () => {
       clearTimeout(initialTimer);
@@ -42,22 +39,22 @@ export default function LiveActivity({ isDarkMode }) {
     };
   }, []);
 
-  if (!currentEvent) return null;
-
   return (
-    <div className={`fixed bottom-6 right-6 z-50 transition-all duration-500 transform ${
-      isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0 pointer-events-none'
+    <div className={`fixed bottom-24 left-6 z-[100] transition-all duration-700 transform ${
+      isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none'
     }`}>
-      <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border ${
-        isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-stone-200 text-stone-700'
-      }`}>
-        {/* נקודה ירוקה מהבהבת */}
-        <div className="relative flex items-center justify-center">
-          <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-emerald-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+      {currentEvent && (
+        <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border-2 ${
+          isDarkMode ? 'bg-gray-900 border-gray-700 text-gray-100' : 'bg-white border-emerald-100 text-stone-800'
+        }`}>
+          {/* נקודה ירוקה מהבהבת גדולה יותר */}
+          <div className="relative flex items-center justify-center">
+            <span className="animate-ping absolute inline-flex h-4 w-4 rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+          </div>
+          <span className="text-sm font-bold">{currentEvent}</span>
         </div>
-        <span className="text-xs font-bold">{currentEvent}</span>
-      </div>
+      )}
     </div>
   );
 }
