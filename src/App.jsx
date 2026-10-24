@@ -12,7 +12,7 @@ import ProfileModal from './components/ProfileModal';
 import MyItemsModal from './components/MyItemsModal';
 import SidebarMenu from './components/SidebarMenu';
 import FloatingChat from './components/FloatingChat';
-import LiveActivity from './components/LiveActivity'; // הייבוא שהיה חסר
+import LiveActivity from './components/LiveActivity'; 
 import { db } from './firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
@@ -24,7 +24,6 @@ export default function App() {
   const localTrades = Array.isArray(state.trades) ? state.trades : [];
   const localMessages = Array.isArray(state.messages) ? state.messages : [];
   const favorites = Array.isArray(state.favorites) ? state.favorites : [];
-  const ratings = Array.isArray(state.ratings) ? state.ratings : [];
   const isDarkMode = !!state.isDarkMode;
   const searchQuery = state.searchQuery || '';
   const selectedRegion = state.selectedRegion || 'הכל';
@@ -55,7 +54,6 @@ export default function App() {
   const handleSendTradeOffer = state.handleSendTradeOffer || (() => {});
   const handleUpdateTradeStatus = state.handleUpdateTradeStatus || (() => {});
   const handleSendMessage = state.handleSendMessage || (() => {});
-  const handleAddRating = state.handleAddRating || (() => {});
   const originalHandleLogout = state.handleLogout || (() => {});
 
   const [userProfile, setUserProfile] = useState(() => {
@@ -91,9 +89,6 @@ export default function App() {
       localStorage.setItem('swapit_user_profile', JSON.stringify(newProfile));
     } catch (e) {}
     setIsRegistered(true);
-    if (state.setIsRegistered) {
-      state.setIsRegistered(true);
-    }
   };
 
   const handleLogout = () => {
@@ -118,168 +113,120 @@ export default function App() {
   const [firestoreItems, setFirestoreItems] = useState([]);
   const [firestoreTrades, setFirestoreTrades] = useState([]);
   const [firestoreMessages, setFirestoreMessages] = useState([]);
+  const [firestoreRatings, setFirestoreRatings] = useState([]);
 
   useEffect(() => {
-    try {
-      const unsubscribe = onSnapshot(collection(db, 'items'), (snapshot) => {
-        const itemsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        setFirestoreItems(itemsData);
-      });
-      return () => unsubscribe();
-    } catch (err) {}
+    const unsubItems = onSnapshot(collection(db, 'items'), (snapshot) => {
+      setFirestoreItems(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    const unsubTrades = onSnapshot(collection(db, 'trades'), (snapshot) => {
+      setFirestoreTrades(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    const unsubMessages = onSnapshot(collection(db, 'messages'), (snapshot) => {
+      setFirestoreMessages(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    const unsubRatings = onSnapshot(collection(db, 'ratings'), (snapshot) => {
+      setFirestoreRatings(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return () => {
+      unsubItems(); unsubTrades(); unsubMessages(); unsubRatings();
+    };
   }, []);
 
-  useEffect(() => {
+  const handleCloudAddItem = async (newItem) => {
     try {
-      const unsubscribe = onSnapshot(collection(db, 'trades'), (snapshot) => {
-        const tradesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        setFirestoreTrades(tradesData);
-      });
-      return () => unsubscribe();
-    } catch (err) {}
-  }, []);
-
-  useEffect(() => {
-    try {
-      const unsubscribe = onSnapshot(collection(db, 'messages'), (snapshot) => {
-        const messagesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        setFirestoreMessages(messagesData);
-      });
-      return () => unsubscribe();
-    } catch (err) {}
-  }, []);
-
-  const handleAddCloudItem = async (newItem) => {
-    try {
-      const cleanedItem = Object.fromEntries(
-        Object.entries(newItem).filter(([_, v]) => v !== undefined && v !== null && v !== '')
-      );
+      const cleanedItem = Object.fromEntries(Object.entries(newItem).filter(([_, v]) => v !== undefined && v !== null && v !== ''));
       await addDoc(collection(db, 'items'), { ...cleanedItem, createdAt: new Date().toISOString() });
       setIsUploadOpen(false);
       alert("הפריט הועלה בהצלחה לענן! 🚀");
     } catch (error) {
-      console.error("שגיאה בשמירת הפריט למסד הנתונים:", error);
-      alert("שגיאה בשמירת הפריט במסד הנתונים (Firestore): " + error.message);
+      alert("שגיאה בשמירת הפריט: " + error.message);
       setIsUploadOpen(false);
     }
   };
 
   const handleCloudDeleteItem = async (itemId) => {
     try {
-      if (itemId && String(itemId).length > 10) {
-        await deleteDoc(doc(db, 'items', itemId));
-      }
+      if (itemId && String(itemId).length > 10) await deleteDoc(doc(db, 'items', itemId));
       handleDeleteMyItem(itemId);
       alert("הפריט נמחק בהצלחה! 🗑️");
-    } catch (error) {
-      handleDeleteMyItem(itemId);
-    }
+    } catch (error) { handleDeleteMyItem(itemId); }
   };
 
   const handleCloudUpdateItem = async (updatedItem) => {
     try {
       if (updatedItem?.id && String(updatedItem.id).length > 10) {
         await updateDoc(doc(db, 'items', updatedItem.id), {
-          title: updatedItem.title,
-          wanted: updatedItem.wanted,
-          condition: updatedItem.condition,
-          description: updatedItem.description
+          title: updatedItem.title, wanted: updatedItem.wanted,
+          condition: updatedItem.condition, description: updatedItem.description
         });
       }
       handleUpdateMyItem(updatedItem);
       alert("הפריט עודכן בהצלחה בענן! 🔄");
-    } catch (error) {
-      handleUpdateMyItem(updatedItem);
-    }
+    } catch (error) { handleUpdateMyItem(updatedItem); }
   };
 
   const handleCloudSendTradeOffer = async (myItem, targetItem) => {
     try {
       if (targetItem) {
         await addDoc(collection(db, 'trades'), {
-          itemId: targetItem.id || '',
-          itemTitle: targetItem.title || '',
-          itemImage: targetItem.image || '',
-          offeredItemTitle: myItem?.title || '',
-          offeredItemImage: myItem?.image || '',
-          status: 'ממתין',
-          senderName: userProfile?.name || 'יובל לוי',
-          createdAt: new Date().toISOString()
+          itemId: targetItem.id || '', itemTitle: targetItem.title || '', itemImage: targetItem.image || '',
+          offeredItemTitle: myItem?.title || '', offeredItemImage: myItem?.image || '',
+          status: 'ממתין', senderName: userProfile?.name || 'יובל לוי', createdAt: new Date().toISOString()
         });
         alert("הצעת החלפה נשלחה בהצלחה לענן! 🤝");
       }
       setTradeTargetItem(null);
-    } catch (error) {
-      handleSendTradeOffer(myItem, targetItem);
-    }
+    } catch (error) { handleSendTradeOffer(myItem, targetItem); }
   };
 
   const handleCloudUpdateTradeStatus = async (tradeId, newStatus) => {
     try {
-      if (tradeId && String(tradeId).length > 10) {
-        await updateDoc(doc(db, 'trades', tradeId), { status: newStatus });
-      }
+      if (tradeId && String(tradeId).length > 10) await updateDoc(doc(db, 'trades', tradeId), { status: newStatus });
       handleUpdateTradeStatus(tradeId, newStatus);
-    } catch (error) {
-      handleUpdateTradeStatus(tradeId, newStatus);
-    }
+    } catch (error) { handleUpdateTradeStatus(tradeId, newStatus); }
   };
 
   const handleCloudSendMessage = async (tradeId, text) => {
     try {
       if (tradeId && text) {
         await addDoc(collection(db, 'messages'), {
-          tradeId: tradeId,
-          sender: userProfile?.name || 'יובל לוי',
-          text: text,
-          timestamp: new Date().toISOString()
+          tradeId: tradeId, sender: userProfile?.name || 'יובל לוי', text: text, timestamp: new Date().toISOString()
         });
       }
       handleSendMessage(tradeId, text);
-    } catch (error) {
-      handleSendMessage(tradeId, text);
-    }
+    } catch (error) { handleSendMessage(tradeId, text); }
   };
 
   const handleCloudReportItem = async (item) => {
     try {
       await addDoc(collection(db, 'reports'), {
-        itemId: item.id || '',
-        itemTitle: item.title || '',
-        reportedBy: userProfile?.name || 'אנונימי',
-        timestamp: new Date().toISOString()
+        itemId: item.id || '', itemTitle: item.title || '', reportedBy: userProfile?.name || 'אנונימי', timestamp: new Date().toISOString()
       });
-      alert('הדיווח נשלח בהצלחה למנהלי המערכת. תודה שעזרת לשמור על הקהילה! 🛡️');
-    } catch (error) {
-      console.error("שגיאה בשליחת הדיווח:", error);
-    }
+      alert('הדיווח נשלח בהצלחה למנהלי המערכת. 🛡️');
+    } catch (error) {}
+  };
+
+  const handleCloudAddRating = async (ratingData) => {
+    try {
+      await addDoc(collection(db, 'ratings'), { ...ratingData, timestamp: new Date().toISOString() });
+    } catch (error) {}
   };
 
   const safeInitialCategories = Array.isArray(categories) ? categories : [];
-  const safeFirestoreItems = Array.isArray(firestoreItems) ? firestoreItems : [];
-
   const mergedCategories = safeInitialCategories.map((cat, index) => {
-    const cloudItemsForCat = safeFirestoreItems.filter(item => {
-      if (!item) return false;
+    const cloudItemsForCat = firestoreItems.filter(item => {
       const matchId = String(item.categoryId || '').toLowerCase() === String(cat.id || '').toLowerCase();
       const matchName = String(item.category || '').toLowerCase() === String(cat.name || '').toLowerCase();
-      const isOrphan = !safeInitialCategories.some(c => 
-        String(c.id || '').toLowerCase() === String(item.categoryId || '').toLowerCase() || 
-        String(c.name || '').toLowerCase() === String(item.category || '').toLowerCase()
-      );
+      const isOrphan = !safeInitialCategories.some(c => String(c.id || '').toLowerCase() === String(item.categoryId || '').toLowerCase() || String(c.name || '').toLowerCase() === String(item.category || '').toLowerCase());
       return matchId || matchName || (index === 0 && isOrphan);
     });
-
-    return {
-      ...cat,
-      items: [...cloudItemsForCat, ...(Array.isArray(cat.items) ? cat.items : [])]
-    };
+    return { ...cat, items: [...cloudItemsForCat, ...(Array.isArray(cat.items) ? cat.items : [])] };
   });
 
-  const allMyItems = [...myItems, ...safeFirestoreItems.filter(item => !myItems.some(mi => mi.id === item.id))];
+  const allMyItems = [...myItems, ...firestoreItems.filter(item => !myItems.some(mi => mi.id === item.id))];
   const activeTrades = [...localTrades, ...firestoreTrades.filter(ft => !localTrades.some(lt => lt.id === ft.id))];
   const activeMessages = [...localMessages, ...firestoreMessages.filter(fm => !localMessages.some(lm => lm.id === fm.id))];
-
   const unreadCount = activeTrades.filter(t => t.status === 'ממתין' && t.senderName !== userProfile?.name).length;
 
   const filteredCategories = mergedCategories.map(cat => ({
@@ -298,130 +245,24 @@ export default function App() {
   const completedTradesCount = activeTrades.filter(t => t?.status === 'אושר').length;
 
   return (
-    <div dir="rtl" className={`min-h-screen w-full font-sans pb-16 transition-colors relative ${
-      isDarkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-800'
-    }`}>
-      
-      {!isRegistered && (
-        <OnboardingWizard 
-          onComplete={handleCompleteOnboarding}
-          isDarkMode={isDarkMode}
-        />
-      )}
-
-      <Navbar 
-        onOpenUpload={() => setIsUploadOpen(true)} 
-        onOpenProfile={() => setIsProfileOpen(true)}
-        onOpenMenu={() => setIsMenuOpen(true)}
-        onOpenMyItems={() => setIsMyItemsOpen(true)}
-        userName={userProfile?.name || ''}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={() => state.setIsDarkMode ? state.setIsDarkMode(!isDarkMode) : {}}
-        unreadCount={unreadCount}
-      />
-      
-      <Banner 
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        selectedRegion={selectedRegion}
-        setSelectedRegion={setSelectedRegion}
-        selectedCondition={selectedCondition}
-        setSelectedCondition={setSelectedCondition}
-        minRating={minRating}
-        setMinRating={setMinRating}
-        isDarkMode={isDarkMode}
-      />
-
-      <CategoryGrid 
-        categories={mergedCategories}
-        selectedCategory={selectedCategory}
-        onSelectCategory={(catId) => setSelectedCategory(selectedCategory === catId ? 'הכל' : catId)}
-        isDarkMode={isDarkMode}
-      />
-
+    <div dir="rtl" className={`min-h-screen w-full font-sans pb-16 transition-colors relative ${isDarkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-800'}`}>
+      {!isRegistered && <OnboardingWizard onComplete={handleCompleteOnboarding} isDarkMode={isDarkMode} />}
+      <Navbar onOpenUpload={() => setIsUploadOpen(true)} onOpenProfile={() => setIsProfileOpen(true)} onOpenMenu={() => setIsMenuOpen(true)} onOpenMyItems={() => setIsMyItemsOpen(true)} userName={userProfile?.name || ''} isDarkMode={isDarkMode} onToggleDarkMode={() => state.setIsDarkMode ? state.setIsDarkMode(!isDarkMode) : {}} unreadCount={unreadCount} />
+      <Banner searchQuery={searchQuery} setSearchQuery={setSearchQuery} selectedRegion={selectedRegion} setSelectedRegion={setSelectedRegion} selectedCondition={selectedCondition} setSelectedCondition={setSelectedCondition} minRating={minRating} setMinRating={setMinRating} isDarkMode={isDarkMode} />
+      <CategoryGrid categories={mergedCategories} selectedCategory={selectedCategory} onSelectCategory={(catId) => setSelectedCategory(selectedCategory === catId ? 'הכל' : catId)} isDarkMode={isDarkMode} />
       <main className="max-w-7xl mx-auto px-6 space-y-10 mt-6">
         {filteredCategories.map((category) => (
-          <CategoryRow 
-            key={category.id} 
-            category={category} 
-            onSelectItem={setSelectedItem} 
-            favorites={favorites}
-            onToggleFavorite={handleToggleFavorite}
-            isDarkMode={isDarkMode}
-          />
+          <CategoryRow key={category.id} category={category} onSelectItem={setSelectedItem} favorites={favorites} onToggleFavorite={handleToggleFavorite} isDarkMode={isDarkMode} />
         ))}
       </main>
-
-      <ItemModal 
-        item={selectedItem} 
-        onClose={() => setSelectedItem(null)} 
-        onStartTrade={(item) => { setSelectedItem(null); setTradeTargetItem(item); }}
-        onReport={handleCloudReportItem}
-        isDarkMode={isDarkMode}
-      />
-
-      <UploadModal 
-        isOpen={isUploadOpen} 
-        onClose={() => setIsUploadOpen(false)} 
-        onAdd={handleAddCloudItem}
-        isDarkMode={isDarkMode}
-        userLocation={userProfile?.location}
-      />
-
-      <ProfileModal 
-        isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
-        userProfile={userProfile}
-        onUpdateProfile={handleUpdateProfile}
-        ratings={ratings}
-        completedTradesCount={completedTradesCount}
-        onLogout={handleLogout}
-        isDarkMode={isDarkMode}
-      />
-
-      <MyItemsModal 
-        isOpen={isMyItemsOpen}
-        onClose={() => setIsMyItemsOpen(false)}
-        myItems={allMyItems}
-        onDeleteMyItem={handleCloudDeleteItem}
-        onUpdateMyItem={handleCloudUpdateItem}
-        isDarkMode={isDarkMode}
-      />
-
-      <SidebarMenu 
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        trades={activeTrades}
-        onUpdateTradeStatus={handleCloudUpdateTradeStatus}
-        messages={activeMessages}
-        onSendMessage={handleCloudSendMessage}
-        onAddRating={handleAddRating}
-        myItems={allMyItems}
-        allCategories={mergedCategories}
-        isDarkMode={isDarkMode}
-        onOpenFloatingChat={(trade) => setActiveFloatingTrade(trade)}
-      />
-
-      <TradeModal 
-        targetItem={tradeTargetItem}
-        myItems={allMyItems}
-        onClose={() => setTradeTargetItem(null)}
-        onSuccess={(myItem) => handleCloudSendTradeOffer(myItem, tradeTargetItem)}
-        isDarkMode={isDarkMode}
-      />
-
-      <FloatingChat 
-        isOpen={!!activeFloatingTrade}
-        onClose={() => setActiveFloatingTrade(null)}
-        trade={activeFloatingTrade}
-        messages={activeMessages}
-        onSendMessage={handleCloudSendMessage}
-        isDarkMode={isDarkMode}
-      />
-
-      {/* ההפעלה של קומפוננטת הפעילות החיה */}
+      <ItemModal item={selectedItem} onClose={() => setSelectedItem(null)} onStartTrade={(item) => { setSelectedItem(null); setTradeTargetItem(item); }} onReport={handleCloudReportItem} isDarkMode={isDarkMode} />
+      <UploadModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} onAdd={handleCloudAddItem} isDarkMode={isDarkMode} userLocation={userProfile?.location} />
+      <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} userProfile={userProfile} onUpdateProfile={handleUpdateProfile} ratings={firestoreRatings} completedTradesCount={completedTradesCount} onLogout={handleLogout} isDarkMode={isDarkMode} />
+      <MyItemsModal isOpen={isMyItemsOpen} onClose={() => setIsMyItemsOpen(false)} myItems={allMyItems} onDeleteMyItem={handleCloudDeleteItem} onUpdateMyItem={handleCloudUpdateItem} isDarkMode={isDarkMode} />
+      <SidebarMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} trades={activeTrades} onUpdateTradeStatus={handleCloudUpdateTradeStatus} messages={activeMessages} onSendMessage={handleCloudSendMessage} onAddRating={handleCloudAddRating} myItems={allMyItems} isDarkMode={isDarkMode} onOpenFloatingChat={(trade) => setActiveFloatingTrade(trade)} userName={userProfile?.name} />
+      <TradeModal targetItem={tradeTargetItem} myItems={allMyItems} onClose={() => setTradeTargetItem(null)} onSuccess={(myItem) => handleCloudSendTradeOffer(myItem, tradeTargetItem)} isDarkMode={isDarkMode} />
+      <FloatingChat isOpen={!!activeFloatingTrade} onClose={() => setActiveFloatingTrade(null)} trade={activeFloatingTrade} messages={activeMessages} onSendMessage={handleCloudSendMessage} isDarkMode={isDarkMode} />
       <LiveActivity isDarkMode={isDarkMode} />
-
     </div>
   );
 }
