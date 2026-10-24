@@ -1,8 +1,5 @@
-// ייבוא ספריית React וה-Hooks הנדרשים לניהול מצב ותופעות לוואי
 import React, { useState, useEffect } from 'react';
-// ייבוא ה-Hook המרכזי שמנהל את נתוני האפליקציה והזיכרון המקומי
 import { useSwapitState } from './useSwapitState';
-// ייבוא קומפוננטות ממשק שונות של האתר
 import OnboardingWizard from './components/OnboardingWizard';
 import Navbar from './components/Navbar';
 import Banner from './components/Banner';
@@ -15,16 +12,12 @@ import ProfileModal from './components/ProfileModal';
 import MyItemsModal from './components/MyItemsModal';
 import SidebarMenu from './components/SidebarMenu';
 import FloatingChat from './components/FloatingChat';
-// ייבוא חיבור לבסיס הנתונים של Firebase ופקודות עבודה מול Firestore
 import { db } from './firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
-// הגדרת קומפוננטת האב הראשית של האפליקציה
 export default function App() {
-  // קריאה ל-Hook המרכזי שלנו ואבטחה למקרה שיחזיר ערך ריק
   const state = useSwapitState() || {};
   
-  // חילוץ מערכים ונתונים בצורה בטוחה עם ערכי ברירת מחדל למניעת קריסות
   const categories = Array.isArray(state.categories) ? state.categories : [];
   const myItems = Array.isArray(state.myItems) ? state.myItems : [];
   const localTrades = Array.isArray(state.trades) ? state.trades : [];
@@ -44,7 +37,6 @@ export default function App() {
   const tradeTargetItem = state.tradeTargetItem || null;
   const activeFloatingTrade = state.activeFloatingTrade || null;
 
-  // חילוץ פקודות עדכון וניהול מתוך ה-State
   const setSearchQuery = state.setSearchQuery || (() => {});
   const setSelectedRegion = state.setSelectedRegion || (() => {});
   const setSelectedCondition = state.setSelectedCondition || (() => {});
@@ -65,7 +57,6 @@ export default function App() {
   const handleAddRating = state.handleAddRating || (() => {});
   const originalHandleLogout = state.handleLogout || (() => {});
 
-  // ניהול מצב פרופיל המשתמש מתוך הזיכרון המקומי
   const [userProfile, setUserProfile] = useState(() => {
     try {
       const saved = localStorage.getItem('swapit_user_profile');
@@ -75,7 +66,6 @@ export default function App() {
     }
   });
 
-  // ניהול מצב ההרשמה
   const [isRegistered, setIsRegistered] = useState(() => {
     try {
       const isRemembered = localStorage.getItem('swapit_remember_me') === 'true';
@@ -158,7 +148,6 @@ export default function App() {
     } catch (err) {}
   }, []);
 
-  // מנגנון לכידת שגיאות מעודכן
   const handleAddCloudItem = async (newItem) => {
     try {
       const cleanedItem = Object.fromEntries(
@@ -251,6 +240,21 @@ export default function App() {
     }
   };
 
+  // מנגנון הדיווח הקהילתי החדש
+  const handleCloudReportItem = async (item) => {
+    try {
+      await addDoc(collection(db, 'reports'), {
+        itemId: item.id || '',
+        itemTitle: item.title || '',
+        reportedBy: userProfile?.name || 'אנונימי',
+        timestamp: new Date().toISOString()
+      });
+      alert('הדיווח נשלח בהצלחה למנהלי המערכת. תודה שעזרת לשמור על הקהילה! 🛡️');
+    } catch (error) {
+      console.error("שגיאה בשליחת הדיווח:", error);
+    }
+  };
+
   const safeInitialCategories = Array.isArray(categories) ? categories : [];
   const safeFirestoreItems = Array.isArray(firestoreItems) ? firestoreItems : [];
 
@@ -275,6 +279,9 @@ export default function App() {
   const allMyItems = [...myItems, ...safeFirestoreItems.filter(item => !myItems.some(mi => mi.id === item.id))];
   const activeTrades = [...localTrades, ...firestoreTrades.filter(ft => !localTrades.some(lt => lt.id === ft.id))];
   const activeMessages = [...localMessages, ...firestoreMessages.filter(fm => !localMessages.some(lm => lm.id === fm.id))];
+
+  // ספירת התראות שלא נקראו (הצעות ברטר שממתינות לאישור המשתמש)
+  const unreadCount = activeTrades.filter(t => t.status === 'ממתין' && t.senderName !== userProfile?.name).length;
 
   const filteredCategories = mergedCategories.map(cat => ({
     ...cat,
@@ -311,6 +318,7 @@ export default function App() {
         userName={userProfile?.name || ''}
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => state.setIsDarkMode ? state.setIsDarkMode(!isDarkMode) : {}}
+        unreadCount={unreadCount}
       />
       
       <Banner 
@@ -349,6 +357,7 @@ export default function App() {
         item={selectedItem} 
         onClose={() => setSelectedItem(null)} 
         onStartTrade={(item) => { setSelectedItem(null); setTradeTargetItem(item); }}
+        onReport={handleCloudReportItem}
         isDarkMode={isDarkMode}
       />
 

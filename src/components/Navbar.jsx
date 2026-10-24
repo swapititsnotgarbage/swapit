@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Navbar({ onOpenUpload, onOpenProfile, onOpenMenu, onOpenMyItems, userName, isDarkMode, onToggleDarkMode }) {
+export default function Navbar({ onOpenUpload, onOpenProfile, onOpenMenu, onOpenMyItems, userName, isDarkMode, onToggleDarkMode, unreadCount = 0 }) {
   return (
     <header className={`sticky top-0 z-40 w-full backdrop-blur-md border-b px-6 py-4 flex items-center justify-between transition-colors ${
       isDarkMode ? 'bg-gray-900/95 border-gray-800 text-white' : 'bg-white/95 border-stone-200 text-gray-800 shadow-xs'
@@ -8,14 +8,20 @@ export default function Navbar({ onOpenUpload, onOpenProfile, onOpenMenu, onOpen
       
       {/* כפתורים מצד ימין */}
       <div className="flex items-center space-x-3 space-x-reverse">
-        {/* תפריט ובקשות */}
+        
+        {/* תפריט ובקשות עם התראות */}
         <button 
           onClick={onOpenMenu}
-          className={`font-bold px-3 py-2 rounded-xl text-sm transition-all border flex items-center gap-2 cursor-pointer ${
+          className={`relative font-bold px-3 py-2 rounded-xl text-sm transition-all border flex items-center gap-2 cursor-pointer ${
             isDarkMode ? 'bg-gray-800 hover:bg-gray-700 border-gray-700 text-gray-200' : 'bg-stone-100 hover:bg-stone-200 border-stone-300 text-stone-700'
           }`}
         >
           <span>☰</span> <span>תפריט ובקשות</span>
+          {unreadCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white dark:border-gray-900 shadow-sm animate-pulse">
+              {unreadCount}
+            </span>
+          )}
         </button>
 
         <button 
@@ -27,7 +33,6 @@ export default function Navbar({ onOpenUpload, onOpenProfile, onOpenMenu, onOpen
           <span>{userName || 'האיזור האישי'}</span> <span>👤</span>
         </button>
 
-        {/* הפריטים שלי */}
         <button 
           onClick={onOpenMyItems}
           className={`font-bold px-3 py-2 rounded-xl text-sm transition-all border flex items-center gap-1.5 cursor-pointer ${
@@ -37,7 +42,6 @@ export default function Navbar({ onOpenUpload, onOpenProfile, onOpenMenu, onOpen
           <span>הפריטים שלי</span> <span>📦</span>
         </button>
 
-        {/* העלה פריט להחלפה - בצבע חום-עץ חם */}
         <button 
           onClick={onOpenUpload}
           className="bg-amber-700 hover:bg-amber-800 text-white font-bold px-4 py-2 rounded-xl text-sm transition-all shadow-md shadow-amber-900/10 cursor-pointer flex items-center gap-1.5"
@@ -45,7 +49,6 @@ export default function Navbar({ onOpenUpload, onOpenProfile, onOpenMenu, onOpen
           <span>העלה פריט להחלפה</span> <span>+</span>
         </button>
 
-        {/* כפתור החלפת מצב תאורה */}
         <button 
           onClick={onToggleDarkMode}
           className={`p-2 rounded-xl border text-sm transition-all cursor-pointer ${
