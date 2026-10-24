@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth"; // 🔑 הוספת ייבוא של Auth
+import { getAuth } from "firebase/auth"; 
+import { getStorage } from "firebase/storage"; // הוספת ייבוא של Storage
 
 const firebaseConfig = {
   apiKey: "AIzaSyAWX1nmoF5DbEmqpOLrimteHR4fHMcKZy0",
@@ -15,6 +16,7 @@ const firebaseConfig = {
 // אתחול פיירבייס
 const app = initializeApp(firebaseConfig);
 
-// ייצוא מסד הנתונים והאימות לשימוש באפליקציה
+// ייצוא מסד הנתונים, האימות והאחסון לשימוש באפליקציה
 export const db = getFirestore(app);
-export const auth = getAuth(app); // 🔑 ייצוא ה-auth
+export const auth = getAuth(app); 
+export const storage = getStorage(app);

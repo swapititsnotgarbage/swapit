@@ -29,22 +29,13 @@ const categoryData = {
   other: { name: 'שונות', icon: '📦' }
 };
 
-export default function CategoryGrid({ items = [], selectedCategory, onSelectCategory, isDarkMode }) {
+export default function CategoryGrid({ categories = [], selectedCategory, onSelectCategory, isDarkMode }) {
   const [showAll, setShowAll] = useState(false);
 
-  // ספירת כמות הפריטים לכל קטגוריה מתוך מערך הפריטים
-  const counts = items.reduce((acc, item) => {
-    const cat = item.category;
-    if (cat) {
-      acc[cat] = (acc[cat] || 0) + 1;
-    }
-    return acc;
-  }, {});
-
-  // מיון הקטגוריות: מהפופולרית ביותר (עם הכי הרבה פריטים) לפחותה
-  const sortedCategories = Object.keys(categoryData).sort((a, b) => {
-    const countA = counts[a] || 0;
-    const countB = counts[b] || 0;
+  // מיון לפי כמות הפריטים שכבר קיימת במערך הקטגוריות הממוזג שמגיע מ-App.jsx
+  const sortedCategories = [...categories].sort((a, b) => {
+    const countA = a.items ? a.items.length : 0;
+    const countB = b.items ? b.items.length : 0;
     return countB - countA;
   });
 
@@ -68,10 +59,11 @@ export default function CategoryGrid({ items = [], selectedCategory, onSelectCat
       </div>
       
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5">
-        {visibleCategories.map((key) => {
+        {visibleCategories.map((cat) => {
+          const key = cat.id;
           const isSelected = selectedCategory === key;
-          const catInfo = categoryData[key] || { name: key, icon: '📦' };
-          const itemCnt = counts[key] || 0;
+          const catInfo = categoryData[key] || { name: cat.title || key, icon: '📦' };
+          const itemCnt = cat.items ? cat.items.length : 0;
 
           return (
             <button

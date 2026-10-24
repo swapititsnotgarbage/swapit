@@ -1,38 +1,7 @@
 import React, { useState } from 'react';
-
-// 🗺️ רשימת היישובים המורשית
-const ALLOWED_CITIES = [
-  "כפר מונש",
-  "תל אביב - יפו",
-  "ירושלים",
-  "חיפה",
-  "נתניה",
-  "רמת גן",
-  "גבעתיים",
-  "פתח תקווה",
-  "ראשון לציון",
-  "רחובות",
-  "נס ציונה",
-  "הרצליה",
-  "רמת השרון",
-  "כפר סבא",
-  "רעננה",
-  "הוד השרון",
-  "חדרה",
-  "זכרון יעקב",
-  "בנימינה",
-  "קיסריה",
-  "פרדס חנה-כרכור",
-  "עמק חפר",
-  "מגדים",
-  "חיפה והקריות",
-  "באר שבע",
-  "אשדוד",
-  "אשקלון",
-  "מודיעין-מכבים-רעות",
-  "צפון (גליל/גולן)",
-  "דרום (אילת/נגב)"
-].sort();
+import { storage } from '../firebase';
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ALLOWED_CITIES } from '../Locations/cities'; // ייבוא רשימת היישובים המרכזית
 
 // 🏷️ קטגוריות ראשיות להעלאה
 const CATEGORY_ICONS = {
@@ -71,10 +40,13 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
   const [wanted, setWanted] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
+  
+  // ⏳ מצב טעינה בזמן שהתמונה עולה לענן
+  const [isUploading, setIsUploading] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!location) {
       alert('חובה לבחור יישוב אמיתי מתוך הרשימה!');
@@ -89,17 +61,35 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
       return;
     }
 
-    const imageUrl = URL.createObjectURL(image);
+    setIsUploading(true);
 
-    onAdd({
-      title,
-      category,
-      location,
-      condition,
-      wanted,
-      description,
-      image: imageUrl
-    });
+    try {
+      // 1. יצירת הפניה (Reference) ייחודית ב-Storage
+      const imageRef = ref(storage, `items/${Date.now()}_${image.name}`);
+      
+      // 2. העלאת הקובץ ל-Firebase Storage
+      await uploadBytes(imageRef, image);
+      
+      // 3. קבלת כתובת ה-URL הציבורית של התמונה
+      const imageUrl = await getDownloadURL(imageRef);
+
+      // 4. העברת הנתונים (כולל ה-URL האמיתי) לפונקציה השומרת ב-Firestore
+      onAdd({
+        title,
+        category,
+        location,
+        condition,
+        wanted,
+        description,
+        image: imageUrl 
+      });
+
+      setIsUploading(false);
+    } catch (error) {
+      console.error("שגיאה בהעלאת התמונה:", error);
+      alert("אירעה שגיאה בהעלאת התמונה. נסה שוב.");
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -237,9 +227,12 @@ export default function UploadModal({ isOpen, onClose, onAdd, isDarkMode }) {
 
           <button 
             type="submit"
-            className="w-full bg-amber-700 hover:bg-amber-800 text-white font-extrabold py-3.5 rounded-xl transition-all shadow-md cursor-pointer"
+            disabled={isUploading}
+            className={`w-full font-extrabold py-3.5 rounded-xl transition-all shadow-md cursor-pointer ${
+              isUploading ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-amber-700 hover:bg-amber-800 text-white'
+            }`}
           >
-            פרסם פריט 🌱
+            {isUploading ? 'מעלה פריט ותמונה לענן...' : 'פרסם פריט 🌱'}
           </button>
 
         </form>

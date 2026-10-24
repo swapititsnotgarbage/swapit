@@ -427,6 +427,14 @@ export default function App() {
         isDarkMode={isDarkMode}
       />
 
+      <TradeModal 
+        targetItem={tradeTargetItem}
+        myItems={allMyItems}
+        onClose={() => setTradeTargetItem(null)}
+        onSuccess={(myItem) => handleCloudSendTradeOffer(myItem, tradeTargetItem)}
+        isDarkMode={isDarkMode}
+      />
+
     </div>
   );
 }
