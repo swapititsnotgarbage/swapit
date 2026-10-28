@@ -1,256 +1,110 @@
-// ייבוא ספריית React וה-Hooks הנדרשים לניהול מצב ותופעות לוואי[cite: 6]
-import React, { useState, useEffect } from 'react';
-// ייבוא אובייקט ה-Auth ובסיס הנתונים Firestore מתוך קובץ ההגדרה של Firebase[cite: 6]
-import { auth, db } from '../firebase';
-// ייבוא פונקציית עדכון מסמך מתוך Firestore[cite: 6]
-import { doc, setDoc } from 'firebase/firestore';
-// ייבוא רשימת היישובים המרכזית מהקובץ החיצוני
-import { ALLOWED_CITIES } from '../Locations/cities';
+import React, { useState } from 'react';
 
-// הגדרת קומפוננטת מודל האזור האישי[cite: 6]
-export default function ProfileModal({ isOpen, onClose, userProfile, onUpdateProfile, ratings, completedTradesCount, onLogout, isDarkMode }) {
-  // משתני מצב לשדות הטופס (שם, יישוב וטלפון)[cite: 6]
-  const [name, setName] = useState(userProfile?.name || '');
-  const [location, setLocation] = useState(userProfile?.location || 'כפר מונש');
-  const [phone, setPhone] = useState(userProfile?.phone || '');
-  
-  // ניהול מצב "זכור אותי" מתוך ה-localStorage[cite: 6]
-  const [rememberMe, setRememberMe] = useState(
-    localStorage.getItem('swapit_remember_me') === 'true'
-  );
+export default function ProfileModal({ isOpen, onClose, userProfile, onUpdateProfile, ratings = [], completedTradesCount = 0, onLogout, isDarkMode }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState(userProfile || { name: '', location: '', phone: '' });
 
-  // עדכון שדות הטופס ברגע שפרופיל המשתמש טוען מחדש[cite: 6]
-  useEffect(() => {
-    if (userProfile) {
-      setName(userProfile.name || '');
-      setLocation(userProfile.location || 'כפר מונש');
-      setPhone(userProfile.phone || '');
-    }
-  }, [userProfile]);
-
-  // אם המודל סגור, אל תציג כלום[cite: 6]
   if (!isOpen) return null;
 
-  // פונקציה לשינוי הגדרת זכור אותי ושמירתה בזיכרון המקומי[cite: 6]
-  const handleToggleRemember = (e) => {
-    const newValue = e.target.checked;
-    setRememberMe(newValue);
-    localStorage.setItem('swapit_remember_me', newValue ? 'true' : 'false');
+  const handleSave = () => {
+    onUpdateProfile(editForm);
+    setIsEditing(false);
   };
 
-  // פונקציית שמירת השינויים שמעדכנת גם מקומית וגם ב-Firebase Firestore[cite: 6]
-  const handleSave = async (e) => {
-    e.preventDefault();
-    
-    // שליפת ה-UID המדויק מכל מקור אפשרי[cite: 6]
-    const activeUserId = auth.currentUser?.uid || userProfile?.uid || localStorage.getItem('swapit_user_uid');
-
-    // יצירת אובייקט הנתונים המעודכן כולל ה-UID המפורש[cite: 6]
-    const updated = {
-      ...userProfile,
-      uid: activeUserId,
-      name,
-      location,
-      phone,
-      updatedAt: new Date().toISOString()
-    };
-
-    try {
-      if (activeUserId) {
-        // שמירת הנתונים המעודכנים ישירות במסמך של המשתמש בענן תחת users/{activeUserId}[cite: 6]
-        const userDocRef = doc(db, 'users', activeUserId);
-        await setDoc(userDocRef, updated, { merge: true });
-        console.log("הפרופיל עודכן בהצלחה בענן תחת UID:", activeUserId);
-      } else {
-        console.warn("שגיאה: לא נמצא UID פעיל לשמירה בענן.");
-      }
-    } catch (error) {
-      console.error("שגיאה בעדכון הפרופיל בענן:", error);
-    }
-
-    // עדכון הסטייט המקומי והזיכרון המקומי (localStorage)[cite: 6]
-    onUpdateProfile(updated);
-    try {
-      localStorage.setItem('swapit_user_profile', JSON.stringify(updated));
-      if (activeUserId) {
-        localStorage.setItem('swapit_user_uid', activeUserId);
-      }
-    } catch (e) {}
-
-    alert('הפרטים האישיים עודכנו בהצלחה בענן ובמכשיר! ✨');
-    onClose();
-  };
+  const isTrustedUser = completedTradesCount >= 3;
+  const ecoImpactKg = (completedTradesCount * 5.5).toFixed(1); 
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" dir="rtl">
-      <div className={`border rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl relative transition-colors flex flex-col max-h-[90vh] ${
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" dir="rtl">
+      <div className={`border rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl relative ${
         isDarkMode ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-stone-200 text-stone-800'
       }`}>
         
-        {/* כותרת עליונה של המודל[cite: 6] */}
-        <div className={`flex items-center justify-between p-6 border-b ${isDarkMode ? 'border-gray-800' : 'border-stone-100'}`}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-700/10 text-amber-700 flex items-center justify-center font-bold text-xl">
-              👤
-            </div>
-            <div>
-              <h3 className="text-xl font-black">האיזור האישי שלי</h3>
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 mt-0.5">
-                🌱 שכן מאומת בקהילה
-              </span>
-            </div>
-          </div>
-          <button 
-            onClick={onClose}
-            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold transition-all cursor-pointer ${
-              isDarkMode ? 'bg-gray-800 hover:bg-gray-700 text-white' : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
-            }`}
-          >
-            ✕
-          </button>
+        <div className="relative h-24 bg-gradient-to-r from-amber-700 to-amber-900">
+          <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/30 text-white flex items-center justify-center font-bold cursor-pointer">✕</button>
         </div>
 
-        {/* תוכן גוף המודל עם אפשרות גלילה[cite: 6] */}
-        <div className="p-6 space-y-6 overflow-y-auto flex-1 text-right">
+        <div className="px-6 pb-6 relative">
           
-          {/* קוביית סטטיסטיקות ומוניטין[cite: 6] */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className={`p-4 rounded-2xl border text-center ${
-              isDarkMode ? 'bg-gray-800/40 border-gray-800' : 'bg-stone-50 border-stone-200/60'
-            }`}>
-              <div className="text-2xl font-black text-amber-600 flex items-center justify-center gap-1">
-                5.0 <span className="text-lg">⭐</span>
-              </div>
-              <span className={`text-xs font-semibold mt-1 block ${isDarkMode ? 'text-gray-400' : 'text-stone-500'}`}>
-                🏆 תג מוביל (מוכר מוערך)
-              </span>
-            </div>
-
-            <div className={`p-4 rounded-2xl border text-center ${
-              isDarkMode ? 'bg-gray-800/40 border-gray-800' : 'bg-stone-50 border-stone-200/60'
-            }`}>
-              <div className="text-2xl font-black text-amber-700">
-                {completedTradesCount || 1}
-              </div>
-              <span className={`text-xs font-semibold mt-1 block ${isDarkMode ? 'text-gray-400' : 'text-stone-500'}`}>
-                🤝 החלפות שהושלמו
-              </span>
-            </div>
+          {/* הזרקת תמונת גוגל אל תוך אזור הפרופיל */}
+          <div className="w-24 h-24 rounded-full border-4 border-white dark:border-gray-900 bg-stone-100 dark:bg-gray-800 -mt-12 mb-3 mx-auto flex items-center justify-center text-3xl shadow-md overflow-hidden z-10 relative">
+            {userProfile?.photoURL ? (
+              <img src={userProfile.photoURL} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <span>👤</span>
+            )}
           </div>
 
-          {/* טופס עריכת פרטים אישיים[cite: 6] */}
-          <form onSubmit={handleSave} className={`p-5 rounded-2xl border space-y-4 ${
-            isDarkMode ? 'bg-gray-800/20 border-gray-800' : 'bg-amber-50/30 border-amber-200/60'
-          }`}>
-            <h4 className="text-sm font-extrabold text-amber-700 mb-2">פרטים אישיים ואמינות</h4>
-            
-            <div className="grid grid-cols-2 gap-3">
+          {!isEditing ? (
+            <div className="text-center space-y-4">
               <div>
-                <label className={`block text-xs font-semibold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-stone-700'}`}>שם מלא</label>
-                <input 
-                  type="text" 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className={`w-full border rounded-xl p-3 text-sm focus:outline-none focus:border-amber-600 text-right ${
-                    isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-stone-300 text-stone-800'
-                  }`}
-                  required
-                />
+                <h3 className="text-2xl font-black flex items-center justify-center gap-1.5">
+                  {userProfile?.name}
+                  {isTrustedUser && (
+                    <span title="משתמש אמין (מעל 3 החלפות)" className="text-emerald-500 text-lg cursor-help">✅</span>
+                  )}
+                </h3>
+                <p className="text-sm font-medium text-stone-500 dark:text-gray-400 mt-1">📍 {userProfile?.location}</p>
+                <p className="text-sm text-stone-500 dark:text-gray-400 mt-0.5">📞 {userProfile?.phone || 'לא הוזן טלפון'}</p>
               </div>
 
-              {/* שדה בחירת יישוב מרשימה סגורה (מתוך הקובץ החיצוני) */}
+              <div className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-1 shadow-sm ${
+                isDarkMode ? 'bg-emerald-900/10 border-emerald-800/30' : 'bg-emerald-50 border-emerald-100'
+              }`}>
+                <span className="text-2xl">🌍</span>
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">מדד השפעה סביבתית</span>
+                <span className="text-lg font-black text-emerald-800 dark:text-emerald-300 mt-0.5">
+                  חסכת {ecoImpactKg} ק"ג של פסולת!
+                </span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-500 mt-1">דרך {completedTradesCount} עסקאות בקהילה</span>
+              </div>
+
+              <div className="flex gap-2 justify-center pt-2">
+                <button onClick={() => setIsEditing(true)} className="px-4 py-2 border rounded-xl text-xs font-bold shadow-sm dark:border-gray-700 dark:bg-gray-800 cursor-pointer hover:bg-stone-50 dark:hover:bg-gray-700 transition-colors">ערוך פרופיל ✏️</button>
+                <button onClick={onLogout} className="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold shadow-sm cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">התנתק</button>
+              </div>
+
+              <div className={`mt-6 pt-4 border-t ${isDarkMode ? 'border-gray-800' : 'border-stone-100'} text-right`}>
+                <h4 className="font-bold text-sm mb-3 flex items-center gap-1"><span>ביקורות מהקהילה (Live)</span><span>⭐</span></h4>
+                <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
+                  {ratings.length === 0 ? (
+                    <p className="text-xs text-stone-400 text-center py-2">עדיין לא נכתבו ביקורות בענן.</p>
+                  ) : (
+                    ratings.map((r, i) => (
+                      <div key={i} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-stone-50 border-stone-200'}`}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[10px] font-bold text-stone-500">{r.reviewer || 'אנונימי'}</span>
+                          <span className="text-amber-400 text-xs">{'★'.repeat(r.score)}</span>
+                        </div>
+                        <p className="text-xs font-medium">{r.comment}</p>
+                        <span className="text-[10px] text-stone-400 block mt-1">{r.date}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
               <div>
-                <label className={`block text-xs font-semibold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-stone-700'}`}>יישוב / מיקום (מתוך הרשימה)</label>
-                <select
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className={`w-full border rounded-xl p-3 text-sm focus:outline-none focus:border-amber-600 text-right ${
-                    isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-stone-300 text-stone-800'
-                  }`}
-                  required
-                >
-                  {ALLOWED_CITIES.map((city, idx) => (
-                    <option key={idx} value={city}>{city}</option>
-                  ))}
-                </select>
+                <label className="block text-xs font-bold mb-1">שם מלא</label>
+                <input type="text" value={editForm.name} onChange={(e) => setEditForm({...editForm, name: e.target.value})} className={`w-full border rounded-xl p-2.5 text-sm ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-stone-50 border-stone-300'}`} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1">יישוב</label>
+                <input type="text" value={editForm.location} onChange={(e) => setEditForm({...editForm, location: e.target.value})} className={`w-full border rounded-xl p-2.5 text-sm ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-stone-50 border-stone-300'}`} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1">טלפון</label>
+                <input type="text" value={editForm.phone} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} className={`w-full border rounded-xl p-2.5 text-sm ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-stone-50 border-stone-300'}`} />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button onClick={handleSave} className="flex-1 bg-amber-700 hover:bg-amber-800 text-white font-bold py-2.5 rounded-xl text-sm shadow-md transition-colors cursor-pointer">שמור שינויים</button>
+                <button onClick={() => setIsEditing(false)} className="px-4 border rounded-xl font-bold text-sm dark:border-gray-700 dark:bg-gray-800 cursor-pointer hover:bg-stone-50 dark:hover:bg-gray-700 transition-colors">ביטול</button>
               </div>
             </div>
-
-            <div>
-              <label className={`block text-xs font-semibold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-stone-700'}`}>טלפון ליצירת קשר (מאומת ב-SMS ✓)</label>
-              <input 
-                type="text" 
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className={`w-full border rounded-xl p-3 text-sm focus:outline-none focus:border-amber-600 text-right ${
-                  isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-stone-300 text-stone-800'
-                }`}
-              />
-            </div>
-
-            {/* מתג זכור אותי[cite: 6] */}
-            <div className={`flex items-center justify-between p-3 rounded-xl border ${
-              isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-stone-200'
-            }`}>
-              <div className="text-right">
-                <span className="block text-xs font-bold">התחברות אוטומטית (זכור אותי) 🔐</span>
-                <span className="text-[10px] text-stone-400">התחבר אוטומטית בביקור הבא במכשיר זה</span>
-              </div>
-              <input 
-                type="checkbox" 
-                checked={rememberMe}
-                onChange={handleToggleRemember}
-                className="w-5 h-5 accent-amber-700 rounded cursor-pointer"
-              />
-            </div>
-
-            <button 
-              type="submit"
-              className="w-full bg-amber-700 hover:bg-amber-800 text-white font-extrabold py-3 rounded-xl shadow-md transition-all text-center cursor-pointer text-sm flex items-center justify-center gap-2"
-            >
-              💾 שמור שינויים בענן
-            </button>
-          </form>
-
-          {/* אזור ביקורות קהילה[cite: 6] */}
-          <div>
-            <h4 className={`text-sm font-extrabold mb-3 flex items-center gap-2 ${isDarkMode ? 'text-gray-300' : 'text-stone-700'}`}>
-              💬 ביקורות קהילה ({ratings?.length || 1})
-            </h4>
-            <div className={`p-4 rounded-2xl border space-y-2 ${
-              isDarkMode ? 'bg-gray-800/40 border-gray-800' : 'bg-stone-50 border-stone-200/60'
-            }`}>
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-sm">שכן מהקהילה</span>
-                <span className="text-xs text-amber-600 font-bold">⭐⭐⭐⭐⭐ (5.0)</span>
-              </div>
-              <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-stone-600'}`}>
-                "חווית החלפה מדהימה! הכל היה מדויק, אדיב ומהיר. מומלץ בחום!"
-              </p>
-              <span className="text-[10px] text-stone-400 block pt-1">01/10/2026</span>
-            </div>
-          </div>
-
+          )}
         </div>
-
-        {/* כפתורים בתחתית המודל[cite: 6] */}
-        <div className={`p-4 border-t flex items-center justify-between shrink-0 ${isDarkMode ? 'border-gray-800 bg-gray-900/80' : 'border-stone-100 bg-white'}`}>
-          <button 
-            onClick={() => { onLogout(); onClose(); }}
-            className="text-red-500 hover:text-red-600 text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer"
-          >
-            התנתק מהמערכת 🚪
-          </button>
-          <button 
-            onClick={onClose}
-            className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer border ${
-              isDarkMode ? 'border-gray-700 bg-gray-800 hover:bg-gray-700 text-gray-200' : 'border-stone-300 bg-stone-100 hover:bg-stone-200 text-stone-700'
-            }`}
-          >
-            סגור
-          </button>
-        </div>
-
       </div>
     </div>
   );

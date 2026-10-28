@@ -1,157 +1,109 @@
-// ייבוא ספריית React וה-Hooks לניהול מצב[cite: 3]
 import React, { useState } from 'react';
-// ייבוא אובייקט ה-Auth ובסיס הנתונים Firestore מתוך קובץ ההגדרה של Firebase[cite: 3]
-import { auth, db } from '../firebase';
-// ייבוא פונקציות ההתחברות של Google[cite: 3]
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-// ייבוא פונקציות עבודה מול Firestore לבדיקה ושמירת מסמכים בענן[cite: 3]
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-// ייבוא רשימת היישובים המרכזית מהקובץ החיצוני
 import { ALLOWED_CITIES } from '../Locations/cities';
+import { auth, googleProvider } from '../firebase';
+import { signInWithPopup } from 'firebase/auth';
 
-// הגדרת קומפוננטת אשף ההרשמה[cite: 3]
 export default function OnboardingWizard({ onComplete, isDarkMode }) {
-  // משתנה מצב לניהול השלב הנוכחי באשף[cite: 3]
-  const [step, setStep] = useState('welcome');
-  // משתני מצב לשמירת הפרטים בטופס[cite: 3]
-  const [name, setName] = useState('');
+  const [step, setStep] = useState(1);
+  const [googleUser, setGoogleUser] = useState(null);
   const [location, setLocation] = useState('');
-  const [currentUser, setCurrentUser] = useState(null);
+  const [phone, setPhone] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // פונקציה לטיפול בהתחברות עם Google ובדיקה בענן האם המשתמש כבר רשום[cite: 3]
   const handleGoogleLogin = async () => {
+    setIsLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      setCurrentUser(user);
-
-      // שמירת ה-UID של המשתמש בזיכרון המקומי לשימוש עתידי באזור האישי[cite: 3]
-      localStorage.setItem('swapit_user_uid', user.uid);
-
-      // בדיקה בענן האם קיים כבר מסמך עבור ה-UID של המשתמש[cite: 3]
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data();
-        onComplete({
-          uid: user.uid,
-          name: userData.name || user.displayName || 'יובל לוי',
-          location: userData.location || 'כפר מונש',
-          phone: userData.phone || '050-1234567'
-        });
-      } else {
-        setName(user.displayName || 'יובל לוי');
-        setStep('details');
-      }
+      const result = await signInWithPopup(auth, googleProvider);
+      setGoogleUser(result.user);
+      setStep(2); // מעבר לבחירת עיר אחרי התחברות מוצלחת
     } catch (error) {
-      console.error("שגיאה בהתחברות עם Google:", error);
-      alert("שגיאה בהתחברות עם Google: " + error.message);
+      console.error("שגיאה בהתחברות:", error);
+      alert("ההתחברות לא צלחה, נסה שוב.");
     }
+    setIsLoading(false);
   };
 
-  // פונקציה לשמירת הפרטים החדשים בענן בסיום מילוי הטופס בפעם הראשונה[cite: 3]
-  const handleFinalSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name.trim() || !location) {
-      alert('נא למלא שם מלא ולבחור יישוב מתוך הרשימה');
+    if (!location) {
+      alert('חובה לבחור עיר מגורים כדי למצוא החלפות באזורך');
       return;
     }
-
-    const profileData = {
-      uid: currentUser?.uid || localStorage.getItem('swapit_user_uid'),
-      name: name.trim(),
+    onComplete({
+      name: googleUser?.displayName || 'שכן חדש',
+      email: googleUser?.email || '',
+      photoURL: googleUser?.photoURL || '',
       location: location,
-      phone: '050-1234567',
-      email: currentUser?.email || '',
-      updatedAt: new Date().toISOString()
-    };
-
-    try {
-      if (profileData.uid) {
-        const userDocRef = doc(db, 'users', profileData.uid);
-        await setDoc(userDocRef, profileData, { merge: true });
-        console.log("הנתונים נשמרו בהצלחה בענן!");
-      }
-    } catch (error) {
-      console.error("שגיאה בשמירת הפרופיל בענן:", error);
-      alert("שגיאה בשמירת הפרופיל בענן: " + error.message);
-      return;
-    }
-
-    // מעבר לאתר[cite: 3]
-    onComplete(profileData);
+      phone: phone
+    });
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4" dir="rtl">
-      <div className={`border rounded-3xl max-w-md w-full p-8 space-y-6 shadow-2xl relative ${
-        isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-stone-200 text-stone-800'
-      }`}>
+    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
+      <div className={`max-w-md w-full rounded-3xl p-8 shadow-2xl transition-all ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-stone-800'}`}>
         
-        <div className="text-center space-y-2">
-          <span className="text-4xl">🌱</span>
-          <h3 className="text-2xl font-black">הצטרפות לקהילת SWAPIT</h3>
-          <p className="text-xs text-stone-400">פלטפורמת הברטר הישראלית – זה לא זבל 🌱[cite: 3]</p>
-        </div>
-
-        {step === 'welcome' && (
-          <div className="space-y-4">
-            <button
+        {step === 1 ? (
+          <div className="text-center space-y-6">
+            <div className="w-20 h-20 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-4xl mx-auto shadow-inner">
+              🌱
+            </div>
+            <div>
+              <h2 className="text-2xl font-black mb-2">ברוכים הבאים ל-SwapIT</h2>
+              <p className="text-sm text-stone-500 dark:text-gray-400">קהילת הברטר וההחלפות של ישראל. התחברו בצורה מאובטחת כדי להתחיל.</p>
+            </div>
+            
+            <button 
               onClick={handleGoogleLogin}
-              type="button"
-              className={`w-full border rounded-2xl py-3.5 px-4 font-bold text-sm flex items-center justify-center gap-3 transition-all cursor-pointer ${
-                isDarkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-700 text-white' : 'bg-stone-50 border-stone-300 hover:bg-stone-100 text-stone-800'
-              }`}
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-3 bg-white text-gray-800 border border-gray-300 hover:bg-gray-50 font-bold py-3.5 rounded-xl transition-all shadow-sm cursor-pointer"
             >
-              <span>🌐</span>
-              <span>המשך באמצעות חשבון Google</span>
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+              {isLoading ? 'מתחבר מול גוגל...' : 'המשך עם Google'}
             </button>
           </div>
-        )}
-
-        {step === 'details' && (
-          <form onSubmit={handleFinalSubmit} className="space-y-4">
-            <div className="space-y-3">
+        ) : (
+          <div className="text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="w-20 h-20 mx-auto rounded-full overflow-hidden border-4 border-amber-500 shadow-lg">
+              <img src={googleUser?.photoURL} alt="Profile" className="w-full h-full object-cover" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black mb-1">איזה כיף שהצטרפת, {googleUser?.displayName?.split(' ')[0]}! 👋</h2>
+              <p className="text-sm text-stone-500 dark:text-gray-400">עוד שלב אחד קטן ואנחנו בפנים.</p>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-4 text-right">
               <div>
-                <label className="block text-xs font-bold mb-1">שם מלא:</label>
-                <input 
-                  type="text" 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className={`w-full border rounded-xl p-3 text-sm text-right focus:outline-none focus:border-amber-600 ${
-                    isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-stone-50 border-stone-300 text-stone-900'
-                  }`}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold mb-1">יישוב / מיקום (בחר מהרשימה) *</label>
+                <label className="block text-xs font-bold mb-1">עיר מגורים (חובה)</label>
                 <select
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className={`w-full border rounded-xl p-3 text-sm text-right focus:outline-none focus:border-amber-600 ${
-                    isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-stone-50 border-stone-300 text-stone-900'
-                  }`}
+                  className={`w-full border rounded-xl p-3 text-sm focus:outline-none focus:border-amber-600 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-stone-50 border-stone-200'}`}
                   required
                 >
-                  <option value="" disabled>בחר יישוב מהרשימה...</option>
+                  <option value="" disabled>בחר יישוב...</option>
                   {ALLOWED_CITIES.map((city, idx) => (
                     <option key={idx} value={city}>{city}</option>
                   ))}
                 </select>
               </div>
-            </div>
-
-            <button 
-              type="submit"
-              className="w-full bg-amber-700 hover:bg-amber-800 text-white font-extrabold py-3.5 rounded-xl transition-all shadow-md cursor-pointer"
-            >
-              סיים הרשמה וכנס לאתר 🚀
-            </button>
-          </form>
+              <div>
+                <label className="block text-xs font-bold mb-1">טלפון לתיאום (אופציונלי)</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="למשל: 050-1234567"
+                  className={`w-full border rounded-xl p-3 text-sm focus:outline-none focus:border-amber-600 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-stone-50 border-stone-200'}`}
+                />
+              </div>
+              <button 
+                type="submit"
+                className="w-full bg-amber-700 hover:bg-amber-800 text-white font-black py-3.5 rounded-xl transition-all shadow-md mt-2 cursor-pointer"
+              >
+                כניסה לקהילה 🚀
+              </button>
+            </form>
+          </div>
         )}
 
       </div>
