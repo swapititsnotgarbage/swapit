@@ -31,9 +31,8 @@ export function useCloudData(userProfile, stateHandlers) {
       const cleanedItem = Object.fromEntries(Object.entries(newItem).filter(([_, v]) => v !== undefined && v !== null && v !== ''));
       await addDoc(collection(db, 'items'), { ...cleanedItem, createdAt: new Date().toISOString() });
       setIsUploadOpen(false);
-      alert("הפריט הועלה בהצלחה לענן! 🚀");
     } catch (error) {
-      alert("שגיאה בשמירת הפריט: " + error.message);
+      console.error("שגיאה בשמירת הפריט:", error);
       setIsUploadOpen(false);
     }
   };
@@ -42,7 +41,6 @@ export function useCloudData(userProfile, stateHandlers) {
     try {
       if (itemId && String(itemId).length > 10) await deleteDoc(doc(db, 'items', itemId));
       if (stateHandlers.handleDeleteMyItem) stateHandlers.handleDeleteMyItem(itemId);
-      alert("הפריט נמחק בהצלחה! 🗑️");
     } catch (error) {
       if (stateHandlers.handleDeleteMyItem) stateHandlers.handleDeleteMyItem(itemId);
     }
@@ -57,7 +55,6 @@ export function useCloudData(userProfile, stateHandlers) {
         });
       }
       if (stateHandlers.handleUpdateMyItem) stateHandlers.handleUpdateMyItem(updatedItem);
-      alert("הפריט עודכן בהצלחה בענן! 🔄");
     } catch (error) {
       if (stateHandlers.handleUpdateMyItem) stateHandlers.handleUpdateMyItem(updatedItem);
     }
@@ -71,7 +68,6 @@ export function useCloudData(userProfile, stateHandlers) {
           offeredItemTitle: myItem?.title || '', offeredItemImage: myItem?.image || '',
           status: 'ממתין', senderName: userProfile?.name || 'יובל לוי', createdAt: new Date().toISOString()
         });
-        alert("הצעת החלפה נשלחה בהצלחה לענן! 🤝");
       }
       setTradeTargetItem(null);
     } catch (error) {
@@ -106,7 +102,6 @@ export function useCloudData(userProfile, stateHandlers) {
       await addDoc(collection(db, 'reports'), {
         itemId: item.id || '', itemTitle: item.title || '', reportedBy: userProfile?.name || 'אנונימי', timestamp: new Date().toISOString()
       });
-      alert('הדיווח נשלח בהצלחה למנהלי המערכת. 🛡️');
     } catch (error) {}
   };
 
