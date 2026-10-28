@@ -1,9 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth"; 
-import { getStorage } from "firebase/storage"; // הוספת ייבוא של Storage
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAWX1nmoF5DbEmqpOLrimteHR4fHMcKZy0",
